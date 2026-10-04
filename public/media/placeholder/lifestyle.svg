@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1000" viewBox="0 0 1600 1000" role="img" aria-label="Visuel provisoire — Produit en situation / vidéo">
+  <defs>
+    <linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#E2F0EE"/><stop offset="1" stop-color="#F3EDE4"/></linearGradient>
+    <pattern id="p" width="28" height="28" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><line x1="0" y1="0" x2="0" y2="28" stroke="#16202E" stroke-opacity="0.04" stroke-width="10"/></pattern>
+  </defs>
+  <rect width="1600" height="1000" fill="url(#g)"/>
+  <rect width="1600" height="1000" fill="url(#p)"/>
+  <ellipse cx="800.0" cy="690.0" rx="260.0" ry="44.0" fill="#16202E" fill-opacity="0.08"/>
+  <rect x="600.0" y="240.0" width="400.0" height="400.0" rx="56.00000000000001" fill="#FFFFFF" fill-opacity="0.85" stroke="#0F5E5C" stroke-width="6" stroke-dasharray="24 16"/>
+  <path d="M710.0 500.0 l60.0 -76.0 l44.0 52.0 l32.0 -36.0 l44.0 60.0z" fill="#0F5E5C" fill-opacity="0.75"/>
+  <circle cx="860.0" cy="376.0" r="24.0" fill="#0F5E5C" fill-opacity="0.75"/>
+  <g font-family="Inter, Arial, sans-serif" text-anchor="middle" fill="#16202E">
+    <text x="800.0" y="780.0" font-size="45" font-weight="800" letter-spacing="4">VISUEL PROVISOIRE · PLACEHOLDER</text>
+    <text x="800.0" y="840" font-size="32" fill-opacity="0.75">Produit en situation / vidéo — Product in use / video</text>
+    <text x="800.0" y="885" font-size="24" fill-opacity="0.55">public/media/placeholder/lifestyle.svg</text>
+  </g>
+</svg>

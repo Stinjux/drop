@@ -1,0 +1,137 @@
+@import "tailwindcss";
+
+/*
+ * Identité visuelle « Boréa » (provisoire, modifiable ici) :
+ * encre bleu nuit + crème chaud, accent braise pour les appels à l'action,
+ * vert sapin pour la réassurance. Contrastes vérifiés AA (texte blanc sur accent : 5,2:1).
+ */
+@theme {
+  --color-ink: #16202e;
+  --color-ink-soft: #3a4556;
+  --color-muted: #5b6472;
+  --color-cream: #fbf8f3;
+  --color-sand: #f3ede4;
+  --color-line: #e7e1d8;
+  --color-accent: #c2410c;
+  --color-accent-hover: #9a3412;
+  --color-accent-soft: #fdecdf;
+  --color-pine: #0f5e5c;
+  --color-pine-soft: #e2f0ee;
+
+  --font-sans: "Inter Variable", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-display: "Bricolage Grotesque Variable", "Inter Variable", ui-sans-serif, system-ui, sans-serif;
+
+  --shadow-soft: 0 1px 2px rgb(22 32 46 / 0.05), 0 10px 30px -12px rgb(22 32 46 / 0.18);
+  --shadow-cta: 0 10px 24px -10px rgb(194 65 12 / 0.65);
+}
+
+:root {
+  color-scheme: light;
+  --header-h: 64px;
+  --sticky-bar-h: 76px;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+  text-rendering: optimizeLegibility;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  html {
+    scroll-behavior: smooth;
+  }
+}
+
+body {
+  background: var(--color-cream);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Ancrages sous l'en-tête collant */
+section[id],
+[data-anchor] {
+  scroll-margin-top: calc(var(--header-h) + 12px);
+}
+
+:focus-visible {
+  outline: 3px solid var(--color-accent);
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
+/* Apparition discrète au défilement (ajoutée seulement si JS actif et animations autorisées) */
+.reveal-pending {
+  opacity: 0;
+  transform: translateY(18px);
+}
+.reveal-in {
+  opacity: 1;
+  transform: none;
+  transition:
+    opacity 0.7s cubic-bezier(0.2, 0.7, 0.2, 1),
+    transform 0.7s cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+
+@keyframes drawer-in {
+  from {
+    transform: translateX(100%);
+  }
+  to {
+    transform: none;
+  }
+}
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@keyframes bar-in {
+  from {
+    transform: translateY(110%);
+  }
+  to {
+    transform: none;
+  }
+}
+
+.animate-drawer {
+  animation: drawer-in 0.32s cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+.animate-fade {
+  animation: fade-in 0.25s ease-out;
+}
+.animate-bar {
+  animation: bar-in 0.3s cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+
+dialog::backdrop {
+  background: rgb(22 32 46 / 0.55);
+  backdrop-filter: blur(2px);
+}
+
+details > summary {
+  list-style: none;
+}
+details > summary::-webkit-details-marker {
+  display: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+  .reveal-pending {
+    opacity: 1;
+    transform: none;
+  }
+}

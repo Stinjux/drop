@@ -1,0 +1,36 @@
+# dépendances
+/node_modules
+/.pnp
+.pnp.*
+
+# tests
+/coverage
+/test-results
+/playwright-report
+/tests/.tmp
+
+# next.js
+/.next/
+/out/
+/build
+next-env.d.ts
+*.tsbuildinfo
+
+# base de données locale (SQLite / libSQL)
+/data/*.db
+/data/*.db-*
+
+# secrets : seul .env.example est versionné
+.env
+.env.local
+.env.*.local
+.env.development
+.env.production
+!.env.example
+
+# divers
+.DS_Store
+*.pem
+npm-debug.log*
+.vercel
+/bin
