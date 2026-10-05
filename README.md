@@ -222,7 +222,7 @@ Chaque page, action serveur et export revérifie la session, et `/admin` n'est p
 
 ## 8. Tests réalisés
 
-- `npm test` (65 tests) : prix, lots et paliers ; validation du panier ; **montants manipulés** (prix ou
+- `npm test` (69 tests) : prix, lots et paliers ; validation du panier ; **montants manipulés** (prix ou
   montant injecté, quantités 0, négatives, décimales, en texte, excessives, variante inconnue) ; CSRF ;
   limitation de débit ; double clic ; garde-fou des clés live ; paramètres Stripe ; validation des paramètres
   par **stripe-mock** (test ignoré si stripe-mock n'est pas lancé) ; webhooks : signature absente ou invalide,

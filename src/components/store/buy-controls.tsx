@@ -307,6 +307,44 @@ export function AddToCartButton({
   );
 }
 
+/**
+ * Rabais de quantité calculés à partir des paliers (data/product.ts) : « 2 = -15 % · 3 = -20 % · 4+ = -25 % ».
+ * Le palier atteint par la quantité choisie est mis en évidence.
+ */
+export function QuantityDeals() {
+  const { t, quantity, cartCount } = useStore();
+  const tiers = product.pricing.tiers;
+  const base = tiers[0].unitPriceCents;
+  const deals = tiers.slice(1).map((tier, i) => {
+    const next = tiers[i + 2];
+    const open = !next && tier.minQuantity < store.maxQuantityPerOrder;
+    return {
+      key: tier.minQuantity,
+      label: `${tier.minQuantity}${open ? "+" : ""}`,
+      percent: Math.floor(((base - tier.unitPriceCents) * 100) / base),
+      active: quantity >= tier.minQuantity && (!next || quantity < next.minQuantity),
+    };
+  });
+  if (deals.length === 0) return null;
+  return (
+    <div className="mt-3" data-testid="quantity-deals">
+      <p className="mb-1.5 font-mono text-[11px] font-bold uppercase tracking-wider">{t.buy.quantityDeals}</p>
+      <ul className="flex flex-wrap gap-2">
+        {deals.map((d) => (
+          <li
+            key={d.key}
+            aria-current={d.active || undefined}
+            className={`border-2 border-ink px-2 py-1 font-mono text-xs font-bold tabular-nums ${d.active ? "bg-accent text-ink" : "bg-white"}`}
+          >
+            {d.label} = -{d.percent} %
+          </li>
+        ))}
+      </ul>
+      {cartCount > 0 && <p className="mt-1.5 text-xs text-muted">{t.buy.quantityDealsCart}</p>}
+    </div>
+  );
+}
+
 export function BuyControls({
   source,
   showVariant = true,
@@ -351,6 +389,7 @@ export function BuyControls({
             {fmt(t.buy.maxReached, { max: store.maxQuantityPerOrder })}
           </p>
         )}
+        <QuantityDeals />
       </div>
 
       <div className="grid gap-4 pr-[6px]">

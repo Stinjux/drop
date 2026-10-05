@@ -111,7 +111,10 @@ test.describe("boutique", () => {
   test("coloris, taille obligatoire, quantités et remise de quantité", async ({ page }) => {
     await page.goto("/fr");
     const box = page.locator("#buy-box");
-    await expect(box.getByTestId("price")).toHaveText(/39,99/);
+    await expect(box.getByTestId("price")).toHaveText(/54,99/);
+    await expect(box.getByTestId("quantity-deals")).toContainText("2 = -15 %");
+    await expect(box.getByTestId("quantity-deals")).toContainText("3 = -20 %");
+    await expect(box.getByTestId("quantity-deals")).toContainText("4+ = -25 %");
     // 5 coloris × 8 tailles.
     await expect(box.locator("input[name='hero-color']")).toHaveCount(5);
     await expect(box.locator("input[name='hero-size']")).toHaveCount(8);
@@ -124,12 +127,16 @@ test.describe("boutique", () => {
     await pickSize(page, "2XL");
     await expect(box.getByRole("alert")).toHaveCount(0);
     await box.getByRole("button", { name: "Augmenter la quantité" }).click();
-    await expect(box.getByTestId("price")).toHaveText(/71,98/); // 2 × 35,99
-    await expect(box.locator("s")).toHaveText(/79,98/); // prix barré = 2 × prix unitaire réel
-    await expect(box).toContainText("-10 %");
+    await expect(box.getByTestId("price")).toHaveText(/93,48/); // 2 × 46,74 (-15 %)
+    await expect(box.locator("s")).toHaveText(/109,98/); // prix barré = 2 × 54,99 (prix unitaire réel)
+    await expect(box.locator("[data-testid=quantity-deals] [aria-current]")).toHaveText(/^2 = -15/);
+    await expect(box.getByTestId("price").locator("..")).toContainText("-15 %");
     await box.getByRole("button", { name: "Augmenter la quantité" }).click();
-    await expect(box.getByTestId("price")).toHaveText(/98,97/);
-    await expect(box).toContainText("-17 %");
+    await expect(box.getByTestId("price")).toHaveText(/131,97/); // 3 × 43,99 (-20 %)
+    await expect(box.getByTestId("price").locator("..")).toContainText("-20 %");
+    await box.getByRole("button", { name: "Augmenter la quantité" }).click();
+    await expect(box.getByTestId("price")).toHaveText(/164,96/); // 4 × 41,24 (-25 %)
+    await expect(box.getByTestId("price").locator("..")).toContainText("-25 %");
     await box.getByRole("button", { name: "Ajouter au panier" }).click();
     await expect(page.getByRole("dialog", { name: /Votre panier/ })).toContainText("Violet · 2XL");
   });
@@ -187,14 +194,14 @@ test.describe("boutique", () => {
     const cart = page.getByRole("dialog", { name: /Votre panier/ });
     await expect(cart).toBeVisible();
     await expect(cart).toContainText("LivraisonGratuite");
-    await expect(cart).toContainText("Total39,99");
+    await expect(cart).toContainText("Total54,99");
     const gift = cart.getByTestId("gift-bar");
-    await expect(gift).toContainText("Plus que 30,01 $ pour recevoir");
+    await expect(gift).toContainText("Plus que 15,01 $ pour recevoir");
     await cart.getByRole("button", { name: "Augmenter la quantité" }).click();
     await expect(gift).toContainText("offert avec votre commande");
-    await expect(cart).toContainText("Total71,98");
+    await expect(cart).toContainText("Total93,48");
     await cart.getByRole("button", { name: "Augmenter la quantité" }).click();
-    await expect(cart).toContainText("98,97");
+    await expect(cart).toContainText("131,97");
     await cart.getByRole("button", { name: /Retirer/ }).click();
     await expect(cart).toContainText("Votre panier est vide");
     await page.keyboard.press("Escape");
@@ -225,7 +232,7 @@ test.describe("boutique", () => {
     await expect(status).toHaveAttribute("data-status", "pending");
     await expect(status).toContainText("Nous confirmons");
 
-    await sendWebhook(page, "checkout.session.completed", paidSession(sessionId, 3999));
+    await sendWebhook(page, "checkout.session.completed", paidSession(sessionId, 5499));
     await expect(status).toHaveAttribute("data-status", "paid", { timeout: 15_000 });
     await expect(status).toContainText("Paiement confirmé");
     // Panier vidé au retour.
@@ -251,10 +258,10 @@ test.describe("boutique", () => {
 
   test("paiement différé puis échec", async ({ page }) => {
     const sessionId = await checkoutAndGetSession(page);
-    await sendWebhook(page, "checkout.session.completed", paidSession(sessionId, 3999, "unpaid"));
+    await sendWebhook(page, "checkout.session.completed", paidSession(sessionId, 5499, "unpaid"));
     await page.goto(`/fr/checkout/success?session_id=${sessionId}`);
     await expect(page.getByTestId("order-status")).toHaveAttribute("data-status", "processing");
-    await sendWebhook(page, "checkout.session.async_payment_failed", paidSession(sessionId, 3999, "unpaid"));
+    await sendWebhook(page, "checkout.session.async_payment_failed", paidSession(sessionId, 5499, "unpaid"));
     await page.reload();
     await expect(page.getByTestId("order-status")).toHaveAttribute("data-status", "failed");
   });
@@ -301,7 +308,7 @@ test.describe("barre d'achat mobile", () => {
     await expect(bar).toHaveCount(0);
     await page.locator("#features").scrollIntoViewIfNeeded();
     await expect(bar).toBeVisible();
-    await expect(bar).toContainText("39,99");
+    await expect(bar).toContainText("54,99");
     await page.screenshot({ path: `${SHOTS}/mobile-sticky.png` });
     // Sans taille : renvoie au sélecteur du hero avec un message.
     await bar.getByRole("button", { name: "Ajouter au panier" }).click();

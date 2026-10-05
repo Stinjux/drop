@@ -48,6 +48,8 @@ export const en: Dictionary = {
     shippingFree: "Free shipping",
     shippingFlat: "Shipping {amount}",
     delivery: "Estimated delivery: {min}–{max} business days",
+    quantityDeals: "Quantity discount (any colour and size)",
+    quantityDealsCart: "The discount applies to the total number of units in your cart.",
     maxReached: "Maximum {max} units per order.",
   },
   trust: {

@@ -117,13 +117,17 @@ export const product = {
   } satisfies Localized,
 
   pricing: {
-    /** Passer à true après validation du coût fournisseur habituel et de la marge (par taille si besoin). */
-    confirmed: false,
-    /** Prix unitaire selon la quantité totale (le palier 1 = prix de vente de référence). */
+    /** Prix de vente fixé par le propriétaire (le coût fournisseur se vérifie à part, dans supplier-config). */
+    confirmed: true,
+    /**
+     * Prix unitaire selon la quantité TOTALE du panier (coloris et tailles confondus).
+     * 54,99 $ l'unité ; -15 % dès 2, -20 % dès 3, -25 % de 4 à 10 (arrondi au cent).
+     */
     tiers: [
-      { minQuantity: 1, unitPriceCents: 3999 },
-      { minQuantity: 2, unitPriceCents: 3599 },
-      { minQuantity: 3, unitPriceCents: 3299 },
+      { minQuantity: 1, unitPriceCents: 5499 },
+      { minQuantity: 2, unitPriceCents: 4674 }, // -15 %
+      { minQuantity: 3, unitPriceCents: 4399 }, // -20 %
+      { minQuantity: 4, unitPriceCents: 4124 }, // -25 %
     ] satisfies PriceTier[],
     /** Prix barré : `null` tant qu'il n'est pas JUSTIFIÉ. Ex. { priceCents: 5999, justification: "Prix courant du … au …" }. */
     compareAt: null as null | { priceCents: number; justification: string },

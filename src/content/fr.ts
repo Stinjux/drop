@@ -46,6 +46,8 @@ export const fr = {
     shippingFree: "Livraison gratuite",
     shippingFlat: "Livraison {amount}",
     delivery: "Livraison estimée : {min} à {max} jours ouvrables",
+    quantityDeals: "Rabais quantité (tous coloris et tailles confondus)",
+    quantityDealsCart: "Le rabais se calcule sur le total d'unités du panier.",
     maxReached: "Maximum {max} unités par commande.",
   },
   trust: {

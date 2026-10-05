@@ -128,3 +128,30 @@ describe("coloris, tailles et guide des tailles", () => {
     }
   });
 });
+
+describe("prix réels : 54,99 $ ; -15 % (2), -20 % (3), -25 % (4 à 10)", () => {
+  const t = product.pricing.tiers;
+  it("prix unitaire par quantité", () => {
+    expect(unitPriceForQuantity(1, t)).toBe(5499);
+    expect(unitPriceForQuantity(2, t)).toBe(4674);
+    expect(unitPriceForQuantity(3, t)).toBe(4399);
+    for (let q = 4; q <= 10; q++) expect(unitPriceForQuantity(q, t)).toBe(4124);
+  });
+  it("remises affichées exactes (arrondi à la baisse)", () => {
+    expect(packOffer(2, t)).toMatchObject({ totalCents: 9348, baseTotalCents: 10998, savingsPercent: 15 });
+    expect(packOffer(3, t)).toMatchObject({ totalCents: 13197, baseTotalCents: 16497, savingsPercent: 20 });
+    expect(packOffer(4, t)).toMatchObject({ totalCents: 16496, baseTotalCents: 21996, savingsPercent: 25 });
+    expect(packOffer(10, t)).toMatchObject({ totalCents: 41240, savingsPercent: 25 });
+  });
+  it("chaque palier reste à moins d'un cent de la remise annoncée", () => {
+    for (const [q, pct] of [[2, 15], [3, 20], [4, 25]] as const) {
+      expect(Math.abs(unitPriceForQuantity(q, t) - 5499 * (1 - pct / 100))).toBeLessThanOrEqual(0.5);
+    }
+  });
+  it("panier mixte (coloris et tailles différents) : la remise porte sur le total", () => {
+    const v = product.variants;
+    const p = priceCart([{ variantId: v[0].id, quantity: 1 }, { variantId: v[12].id, quantity: 1 }], catalog);
+    expect(p.subtotalCents).toBe(9348);
+    expect(p.savingsCents).toBe(1650);
+  });
+});
