@@ -9,7 +9,8 @@
  * Sont CONFIRMÉS (photos et informations fournies par le propriétaire) : coloris,
  * tailles, tableau des mesures, éléments visibles sur les photos (matelassage,
  * fermeture éclair avant, col montant, poignets élastiqués).
- * Restent À CONFIRMER : matériaux, imperméabilité, entretien, prix, délais réels.
+ * Restent À CONFIRMER : matériaux, imperméabilité, prix, délais réels. Entretien : recommandations
+ * générales (lavage à la main, séchage à l'air libre) en attendant l'étiquette du fabricant.
  *
  * Règles d'honnêteté appliquées par le code :
  * - Note ★ et avis : affichés UNIQUEMENT à partir de `reviews` (vrais avis). Vide = masqué.
@@ -190,7 +191,10 @@ export const product = {
     { label: { fr: "Coloris", en: "Colours" }, value: { fr: "Vert, violet, rose, jaune, rouge", en: "Green, purple, pink, yellow, red" } },
     { label: { fr: "Tailles", en: "Sizes" }, value: { fr: "S, M, L, XL, 2XL, 3XL, 4XL, 5XL", en: "S, M, L, XL, 2XL, 3XL, 4XL, 5XL" } },
     { label: { fr: "Matériau", en: "Material" }, value: { fr: "À confirmer", en: "To be confirmed" } },
-    { label: { fr: "Entretien", en: "Care" }, value: { fr: "À confirmer", en: "To be confirmed" } },
+    {
+      label: { fr: "Entretien", en: "Care" },
+      value: { fr: "Lavage à la main à l'eau froide, séchage à l'air libre (voir l'étiquette)", en: "Hand wash cold, air dry (see care label)" },
+    },
   ] satisfies Array<{ label: Localized; value: Localized }>,
   packageContents: [{ fr: "1 × doudoune pour chien", en: "1 × dog puffer jacket" }] satisfies Localized[],
 
@@ -220,7 +224,11 @@ export const product = {
     },
     {
       q: { fr: "Comment l'entretenir ?", en: "How do I care for it?" },
-      a: { fr: "Consignes d'entretien à confirmer avec le fournisseur.", en: "Care instructions to be confirmed with the supplier." },
+      // Recommandations générales pour les vêtements rembourrés : l'étiquette du vêtement prime.
+      a: {
+        fr: "Recommandations générales pour un vêtement rembourré : lave-le à la main à l'eau froide avec un détergent doux, sans eau de Javel, produit agressif ni assouplissant. Presse-le doucement pour retirer l'eau, sans le tordre, puis laisse-le sécher complètement à l'air libre, à l'abri de la chaleur directe et du soleil. Évite le lave-linge et la sécheuse, sauf si l'étiquette l'autorise. En cas de doute, suis toujours l'étiquette d'entretien cousue sur le vêtement.",
+        en: "General guidelines for padded clothing: hand wash in cold water with a mild detergent, without bleach, harsh chemicals or fabric softener. Gently press out the water without wringing, then let it air dry completely, away from direct heat and sunlight. Avoid the washing machine and dryer unless the care label allows them. When in doubt, always follow the care label sewn into the garment.",
+      },
     },
   ] as Array<{ q: Localized; a: Localized; sizeChart?: boolean }>,
 
