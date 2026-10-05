@@ -48,6 +48,7 @@ export function mapOrder(r: Row): Order {
     totalCents: Number(r.total_cents),
     amountPaidCents: num(r.amount_paid_cents),
     shippingOptionId: String(r.shipping_option_id),
+    giftLabel: str(r.gift_label),
     customerEmail: str(r.customer_email),
     customerName: str(r.customer_name),
     customerPhone: str(r.customer_phone),
@@ -106,6 +107,7 @@ export type NewOrderInput = {
   shippingCents: number;
   totalCents: number;
   shippingOptionId: string;
+  giftLabel?: string | null;
   items: Array<Omit<OrderItem, "id">>;
 };
 
@@ -118,8 +120,8 @@ export async function createPendingOrder(input: NewOrderInput): Promise<OrderWit
     const statements: InStatement[] = [
       {
         sql: `INSERT INTO orders (id, order_number, created_at, updated_at, locale, checkout_attempt_key, cart_fingerprint,
-                payment_status, currency, subtotal_cents, savings_cents, shipping_cents, total_cents, shipping_option_id)
-              VALUES (?, ?, ?, ?, ?, ?, ?, 'pending', ?, ?, ?, ?, ?, ?)`,
+                payment_status, currency, subtotal_cents, savings_cents, shipping_cents, total_cents, shipping_option_id, gift_label)
+              VALUES (?, ?, ?, ?, ?, ?, ?, 'pending', ?, ?, ?, ?, ?, ?, ?)`,
         args: [
           id,
           orderNumber,
@@ -134,6 +136,7 @@ export async function createPendingOrder(input: NewOrderInput): Promise<OrderWit
           input.shippingCents,
           input.totalCents,
           input.shippingOptionId,
+          input.giftLabel ?? null,
         ],
       },
       ...input.items.map((it) => ({
@@ -385,4 +388,14 @@ export async function clearNeedsReview(orderId: string): Promise<void> {
   const db = await getDb();
   await db.execute({ sql: "UPDATE orders SET needs_review = 0, updated_at = ? WHERE id = ?", args: [new Date().toISOString(), orderId] });
   await addOrderEvent(orderId, "review", "Anomalie marquée comme vérifiée par l'administrateur.");
+}
+
+/** Recherche pour le suivi client : numéro ET courriel doivent correspondre. */
+export async function findOrderForTracking(orderNumber: string, email: string): Promise<Order | null> {
+  const db = await getDb();
+  const res = await db.execute({
+    sql: "SELECT * FROM orders WHERE order_number = ? AND lower(customer_email) = lower(?) LIMIT 1",
+    args: [orderNumber.trim().toUpperCase(), email.trim()],
+  });
+  return res.rows[0] ? mapOrder(res.rows[0]) : null;
 }

@@ -63,11 +63,12 @@ export const store = {
     options: [
       {
         id: "standard",
-        label: { fr: "Livraison standard suivie", en: "Standard tracked shipping" },
-        amountCents: 799,
-        freeFromSubtotalCents: 7500,
-        processingDays: { min: 1, max: 3 },
-        transitDays: { min: 7, max: 15 },
+        label: { fr: "Livraison gratuite suivie", en: "Free tracked shipping" },
+        amountCents: 0,
+        freeFromSubtotalCents: null,
+        // 7 à 14 jours ouvrables au total (préparation + transport).
+        processingDays: { min: 1, max: 2 },
+        transitDays: { min: 6, max: 12 },
       },
     ] satisfies ShippingOption[],
   },

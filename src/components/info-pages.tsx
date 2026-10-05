@@ -4,6 +4,7 @@ import type { Locale } from "@/config/types";
 import { fmt, getDictionary, infoHref, type InfoPageId } from "@/content";
 import { defaultShipping, deliveryEstimate } from "@/lib/catalog";
 import { formatMoney } from "@/lib/money";
+import { TrackingForm } from "./store/tracking-form";
 
 /**
  * Pages d'information. Les champs vides de src/config/store.ts s'affichent en
@@ -12,7 +13,7 @@ import { formatMoney } from "@/lib/money";
  */
 function Todo({ locale, children }: { locale: Locale; children: ReactNode }) {
   return (
-    <mark className="rounded bg-accent-soft px-1.5 py-0.5 font-medium text-accent-hover" data-todo>
+    <mark className="border-2 border-ink bg-accent px-1.5 py-0.5 font-mono text-sm font-bold text-ink" data-todo>
       [{getDictionary(locale).pages.toComplete} : {children}]
     </mark>
   );
@@ -22,7 +23,7 @@ function Val({ locale, value, label }: { locale: Locale; value: string; label: s
   return value ? <>{value}</> : <Todo locale={locale}>{label}</Todo>;
 }
 
-const H2 = ({ children }: { children: ReactNode }) => <h2 className="mt-10 font-display text-2xl font-bold">{children}</h2>;
+const H2 = ({ children }: { children: ReactNode }) => <h2 className="mt-10 border-t-[3px] border-ink pt-4 font-display text-xl font-bold uppercase">{children}</h2>;
 const P = ({ children }: { children: ReactNode }) => <p className="mt-3 leading-relaxed text-ink-soft">{children}</p>;
 const UL = ({ children }: { children: ReactNode }) => <ul className="mt-3 list-disc space-y-1.5 pl-5 leading-relaxed text-ink-soft">{children}</ul>;
 
@@ -31,7 +32,8 @@ export const INFO_TITLES: Record<InfoPageId, Record<Locale, string>> = {
   shipping: { fr: "Livraison", en: "Shipping" },
   returns: { fr: "Retours et remboursements", en: "Returns and refunds" },
   privacy: { fr: "Politique de confidentialité", en: "Privacy policy" },
-  terms: { fr: "Conditions de vente", en: "Terms of sale" },
+  terms: { fr: "Conditions générales de vente", en: "Terms of sale" },
+  tracking: { fr: "Suivi de commande", en: "Order tracking" },
 };
 
 function Contact({ locale: l }: { locale: Locale }) {
@@ -39,11 +41,12 @@ function Contact({ locale: l }: { locale: Locale }) {
   const fr = l === "fr";
   return (
     <>
+      <P>{fr ? <>Pour suivre un colis, utilisez la page <a className="font-bold underline decoration-accent decoration-2" href={infoHref(l, "tracking")}>Suivi de commande</a>. </> : <>To track a parcel, use the <a className="font-bold underline decoration-accent decoration-2" href={infoHref(l, "tracking")}>Order tracking</a> page. </>}</P>
       <P>{fr ? "Une question sur un produit ou une commande ? Écrivez-nous en indiquant votre numéro de commande si vous en avez un." : "A question about a product or an order? Write to us and include your order number if you have one."}</P>
-      <dl className="mt-6 grid gap-4 rounded-3xl bg-white p-6 ring-1 ring-line sm:grid-cols-2">
+      <dl className="mt-6 grid gap-4 border-[3px] border-ink bg-white p-6 shadow-[var(--shadow-hard)] sm:grid-cols-2">
         <div>
           <dt className="text-sm font-semibold">{fr ? "Courriel" : "Email"}</dt>
-          <dd className="mt-1">{c.email ? <a className="font-semibold text-accent underline-offset-4 hover:underline" href={`mailto:${c.email}`}>{c.email}</a> : <Todo locale={l}>store.contact.email</Todo>}</dd>
+          <dd className="mt-1">{c.email ? <a className="font-bold underline decoration-accent decoration-2 underline-offset-4" href={`mailto:${c.email}`}>{c.email}</a> : <Todo locale={l}>store.contact.email</Todo>}</dd>
         </div>
         <div>
           <dt className="text-sm font-semibold">{fr ? "Délai de réponse" : "Response time"}</dt>
@@ -111,7 +114,7 @@ function Returns({ locale: l }: { locale: Locale }) {
       <P>{fr ? `Vous pouvez demander un retour dans les ${r.windowDays} jours suivant la réception de votre commande.` : `You can request a return within ${r.windowDays} days of receiving your order.`}</P>
       <H2>{fr ? "Comment faire" : "How to return"}</H2>
       <UL>
-        <li>{fr ? <>Écrivez-nous via la page <a className="text-accent underline" href={contactHref}>Contact</a> avec votre numéro de commande et le motif.</> : <>Write to us via the <a className="text-accent underline" href={contactHref}>Contact</a> page with your order number and the reason.</>}</li>
+        <li>{fr ? <>Écrivez-nous via la page <a className="font-bold underline decoration-accent decoration-2" href={contactHref}>Contact</a> avec votre numéro de commande et le motif.</> : <>Write to us via the <a className="font-bold underline decoration-accent decoration-2" href={contactHref}>Contact</a> page with your order number and the reason.</>}</li>
         <li>{fr ? "Nous vous indiquons l'adresse de retour et la marche à suivre. N'envoyez aucun colis sans notre confirmation." : "We'll send you the return address and instructions. Please don't ship anything before we confirm."}</li>
         <li>{fr ? "Le produit doit être retourné complet, avec ses accessoires." : "The product must be returned complete, with its accessories."}</li>
       </UL>
@@ -208,5 +211,7 @@ export function InfoPageContent({ id, locale }: { id: InfoPageId; locale: Locale
       return <Privacy locale={locale} />;
     case "terms":
       return <Terms locale={locale} />;
+    case "tracking":
+      return <TrackingForm />;
   }
 }

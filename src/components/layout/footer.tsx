@@ -7,33 +7,30 @@ import { Logo } from "./header";
 export function Footer({ locale }: { locale: Locale }) {
   const t = getDictionary(locale);
   const links = [
-    { href: infoHref(locale, "contact"), label: t.footer.contact },
-    { href: infoHref(locale, "shipping"), label: t.footer.shipping },
-    { href: infoHref(locale, "returns"), label: t.footer.returns },
-    { href: infoHref(locale, "privacy"), label: t.footer.privacy },
     { href: infoHref(locale, "terms"), label: t.footer.terms },
+    { href: infoHref(locale, "privacy"), label: t.footer.privacy },
+    { href: infoHref(locale, "returns"), label: t.footer.returns },
+    { href: infoHref(locale, "contact"), label: t.footer.contact },
+    { href: infoHref(locale, "tracking"), label: t.footer.tracking },
+    { href: infoHref(locale, "shipping"), label: t.footer.shipping },
   ];
   return (
-    <footer id="site-footer" className="border-t border-line bg-ink text-white/85">
-      <div className="mx-auto grid max-w-6xl gap-8 px-4 py-12 sm:px-6 md:grid-cols-[1.2fr_1fr]">
-        <div>
-          <span className="text-white">
-            <Logo />
-          </span>
-          <p className="mt-3 max-w-sm text-sm leading-relaxed text-white/70">{store.brand.tagline[locale]}</p>
+    <footer id="site-footer" className="border-t-[3px] border-ink bg-ink text-paper">
+      <div className="mx-auto grid max-w-7xl grid-cols-1 md:grid-cols-[1.2fr_2fr]">
+        <div className="border-b-[3px] border-paper/20 p-6 sm:p-8 md:border-b-0 md:border-r-[3px]">
+          <Logo />
+          <p className="mt-4 max-w-sm text-sm text-paper/75">{store.brand.tagline[locale]}</p>
           {store.contact.email && (
-            <p className="mt-4 text-sm">
-              <a href={`mailto:${store.contact.email}`} className="font-semibold text-white underline-offset-4 hover:underline">
-                {store.contact.email}
-              </a>
-            </p>
+            <a href={`mailto:${store.contact.email}`} className="mt-4 inline-block font-mono text-sm font-bold underline decoration-accent decoration-2 underline-offset-4">
+              {store.contact.email}
+            </a>
           )}
         </div>
-        <nav aria-label="Informations">
-          <ul className="grid grid-cols-2 gap-x-6 gap-y-3 text-sm">
+        <nav aria-label="Informations légales">
+          <ul className="grid grid-cols-2 sm:grid-cols-3">
             {links.map((l) => (
-              <li key={l.href}>
-                <Link href={l.href} className="text-white/80 underline-offset-4 hover:text-white hover:underline">
+              <li key={l.href} className="border-b-[3px] border-r-[3px] border-paper/20">
+                <Link href={l.href} className="block p-5 font-mono text-xs font-bold uppercase tracking-wider hover:bg-accent hover:text-ink sm:p-6 sm:text-sm">
                   {l.label}
                 </Link>
               </li>
@@ -41,13 +38,11 @@ export function Footer({ locale }: { locale: Locale }) {
           </ul>
         </nav>
       </div>
-      <div className="border-t border-white/10">
-        <div className="mx-auto flex max-w-6xl flex-col gap-2 px-4 py-5 text-xs text-white/60 sm:flex-row sm:justify-between sm:px-6">
-          <p>
-            © {new Date().getFullYear()} {store.legal.businessName || store.brand.name}. {t.footer.rights}
-          </p>
-          <p>{t.footer.payments}</p>
-        </div>
+      <div className="mx-auto flex max-w-7xl flex-col gap-1 px-6 py-5 font-mono text-xs text-paper/70 sm:flex-row sm:justify-between sm:px-8">
+        <p>
+          © {new Date().getFullYear()} {store.legal.businessName || store.brand.name}. {t.footer.rights}
+        </p>
+        <p>{t.footer.payments}</p>
       </div>
     </footer>
   );

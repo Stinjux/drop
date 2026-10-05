@@ -23,8 +23,20 @@ export function launchChecklist(): ChecklistItem[] {
     .map(([k]) => k);
 
   return [
-    { label: "Fiche produit vérifiée (nom, caractéristiques, variantes, FAQ)", ok: product.confirmed, blocking: true, detail: "src/config/product.ts → confirmed" },
+    { label: "Fiche produit vérifiée (nom, caractéristiques, variantes, FAQ)", ok: product.confirmed, blocking: true, detail: "data/product.ts → confirmed" },
     { label: "Visuels réels et droits d'utilisation", ok: provisionalMedia.length === 0, blocking: true, detail: provisionalMedia.length ? `${provisionalMedia.length} visuel(s) provisoire(s)` : undefined },
+    {
+      label: "Cadeau du panier défini et disponible",
+      ok: !product.gift.enabled || product.gift.confirmed,
+      blocking: true,
+      detail: product.gift.enabled ? `data/product.ts → gift (« ${product.gift.label.fr} »)` : "désactivé",
+    },
+    {
+      label: "Prix barré justifié (ou absent)",
+      ok: !product.pricing.compareAt || !!product.pricing.compareAt.justification.trim(),
+      blocking: true,
+      detail: product.pricing.compareAt ? product.pricing.compareAt.justification || "justification manquante" : "aucun prix barré",
+    },
     { label: "Prix de vente et lots validés", ok: product.pricing.confirmed, blocking: true, detail: "product.pricing.confirmed" },
     { label: "Coût fournisseur habituel vérifié (hors promo nouveau client)", ok: supplier.costVerified, blocking: false, detail: "src/server/supplier-config.ts" },
     { label: "Tarifs et délais de livraison vers le Canada vérifiés", ok: store.shipping.confirmed, blocking: true, detail: "store.shipping.confirmed" },

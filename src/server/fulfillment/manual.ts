@@ -38,6 +38,7 @@ export const manualProvider: FulfillmentProvider = {
       phone: order.customerPhone,
       estimatedTotalCostCents,
       costVerified: supplier.costVerified,
+      gift: order.giftLabel,
       notes: supplier.notes,
     };
   },

@@ -20,7 +20,8 @@ export const INFO_PAGES = {
   shipping: { fr: "livraison", en: "shipping" },
   returns: { fr: "retours", en: "returns" },
   privacy: { fr: "confidentialite", en: "privacy" },
-  terms: { fr: "conditions-de-vente", en: "terms" },
+  terms: { fr: "cgv", en: "terms" },
+  tracking: { fr: "suivi-commande", en: "order-tracking" },
 } as const satisfies Record<string, Record<Locale, string>>;
 export type InfoPageId = keyof typeof INFO_PAGES;
 

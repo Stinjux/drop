@@ -1,10 +1,10 @@
-import "@fontsource-variable/inter";
 import "../../globals.css";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { store } from "@/config/store";
 import { isAdminAuthenticated } from "@/server/admin/auth";
 import { logoutAction } from "./actions";
+import { display, mono } from "../../fonts";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: `Administration — ${store.brand.name}`, robots: { index: false, follow: false } };
@@ -12,9 +12,9 @@ export const metadata: Metadata = { title: `Administration — ${store.brand.nam
 export default async function AdminLayout({ children }: LayoutProps<"/admin">) {
   const authed = await isAdminAuthenticated();
   return (
-    <html lang="fr-CA">
-      <body className="min-h-dvh bg-sand/60 text-ink">
-        <header className="border-b border-line bg-white">
+    <html lang="fr-CA" className={`${display.variable} ${mono.variable}`}>
+      <body className="min-h-dvh bg-paper text-ink">
+        <header className="border-b-[3px] border-ink bg-white">
           <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-3 px-4 py-3">
             <Link href="/admin" className="font-bold">
               {store.brand.name} · Administration

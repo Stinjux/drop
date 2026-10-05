@@ -6,6 +6,7 @@ import { getMedia, getVariant, product } from "@/config/product";
 import { store } from "@/config/store";
 import type { Locale } from "@/config/types";
 import { catalog, defaultShipping, deliveryEstimate } from "@/lib/catalog";
+import { giftProgress } from "@/lib/gift";
 import { normalizeCartLines, priceCart, type CartError } from "@/lib/pricing";
 import { env } from "../env";
 import { attachCheckoutSession, createPendingOrder, getOrderByAttemptKey, addOrderEvent } from "../orders/repository";
@@ -104,7 +105,7 @@ export function buildCheckoutSessionParams(order: OrderWithItems, opts: { siteUr
       submit: {
         message:
           locale === "fr"
-            ? `En payant, vous acceptez nos conditions de vente : ${opts.siteUrl}/fr/conditions-de-vente`
+            ? `En payant, vous acceptez nos conditions de vente : ${opts.siteUrl}/fr/cgv`
             : `By paying, you agree to our terms of sale: ${opts.siteUrl}/en/terms`,
       },
     },
@@ -138,6 +139,7 @@ export async function createCheckout(req: CheckoutRequest): Promise<{ url: strin
         shippingCents: pricing.shippingCents,
         totalCents: pricing.totalBeforeTaxCents,
         shippingOptionId: defaultShipping.id,
+        giftLabel: giftProgress(pricing.subtotalCents)?.reached ? product.gift.label.fr : null,
         items: pricing.lines.map((l) => ({
           productId: product.id,
           variantId: l.variantId,

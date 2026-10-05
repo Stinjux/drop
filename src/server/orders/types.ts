@@ -76,6 +76,8 @@ export type Order = {
   totalCents: number;
   amountPaidCents: number | null;
   shippingOptionId: string;
+  /** Cadeau à inclure dans le colis (calculé par le serveur à la commande). */
+  giftLabel: string | null;
   customerEmail: string | null;
   customerName: string | null;
   customerPhone: string | null;

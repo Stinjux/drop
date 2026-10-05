@@ -22,8 +22,11 @@ describe("configuration réelle", () => {
   it("les paliers configurés sont cohérents", () => {
     expect(() => assertValidTiers(product.pricing.tiers)).not.toThrow();
   });
-  it("chaque lot proposé respecte la quantité maximale", () => {
-    for (const q of product.offerQuantities) expect(q).toBeLessThanOrEqual(store.maxQuantityPerOrder);
+  it("la livraison affichée est gratuite, 7 à 14 jours ouvrables", () => {
+    const s = store.shipping.options[0];
+    expect(s.amountCents).toBe(0);
+    expect(s.processingDays.min + s.transitDays.min).toBe(7);
+    expect(s.processingDays.max + s.transitDays.max).toBe(14);
   });
   it("le catalogue partagé utilise la configuration", () => {
     expect(catalog.tiers).toBe(product.pricing.tiers);
@@ -96,5 +99,15 @@ describe("format monétaire", () => {
   it("CAD en français et en anglais", () => {
     expect(formatMoney(3999, "fr").replace(/\s/g, " ")).toBe("39,99 $");
     expect(formatMoney(3999, "en")).toBe("$39.99");
+  });
+});
+
+describe("cadeau du panier", async () => {
+  const { giftProgress } = await import("@/lib/gift");
+  it("progression et seuil", () => {
+    const threshold = product.gift.thresholdCents;
+    expect(giftProgress(0)).toMatchObject({ reached: false, remainingCents: threshold, percent: 0 });
+    expect(giftProgress(threshold - 1)?.reached).toBe(false);
+    expect(giftProgress(threshold)).toMatchObject({ reached: true, remainingCents: 0, percent: 100 });
   });
 });

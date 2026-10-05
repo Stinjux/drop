@@ -34,3 +34,6 @@ next-env.d.ts
 npm-debug.log*
 .vercel
 /bin
+
+# Polices Fontshare (licence : auto-hébergement OK, redistribution interdite)
+/public/fonts/Satoshi-*

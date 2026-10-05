@@ -1,14 +1,15 @@
 "use client";
 
+import { AnimatePresence, m } from "framer-motion";
 import { useEffect, useRef, useState, type PointerEvent } from "react";
-import { getMedia, product } from "@/config/product";
+import { getMedia, getVariant, product } from "@/config/product";
 import { IconChevron, IconClose, IconZoom } from "../ui/icons";
 import { ProductImage } from "../ui/primitives";
 import { useStore } from "./store-provider";
 
-/** Galerie avec vignettes et visionneuse plein écran (zoom au clic, déplacement au pointeur, pincement sur mobile). */
+/** Galerie du hero : image principale, miniatures, visionneuse plein écran avec zoom. */
 export function Gallery() {
-  const { locale, t } = useStore();
+  const { locale, t, variantId } = useStore();
   const items = product.gallery.map((id) => getMedia(id));
   const [index, setIndex] = useState(0);
   const [open, setOpen] = useState(false);
@@ -16,6 +17,15 @@ export function Gallery() {
   const [origin, setOrigin] = useState("50% 50%");
   const dialog = useRef<HTMLDialogElement>(null);
   const current = items[index];
+
+  // La sélection d'une variante affiche sa photo.
+  useEffect(() => {
+    const mediaId = getVariant(variantId)?.mediaId;
+    const i = items.findIndex((it) => it.id === mediaId);
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- synchronisation avec la variante choisie
+    if (i >= 0) setIndex(i);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [variantId]);
 
   useEffect(() => {
     const d = dialog.current;
@@ -36,41 +46,38 @@ export function Gallery() {
   };
 
   return (
-    <div className="min-w-0">
+    <div className="min-w-0" aria-label={t.hero.gallery} role="group">
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="group relative block w-full overflow-hidden rounded-3xl bg-sand"
+        className="relative block w-full overflow-hidden border-[3px] border-ink bg-white shadow-[var(--shadow-hard)]"
         aria-label={`${t.a11y.zoom} — ${current.alt[locale]}`}
       >
-        <ProductImage
-          key={current.id}
-          media={current}
-          locale={locale}
-          sizes="(min-width: 768px) 50vw, 100vw"
-          className="aspect-square w-full object-cover transition duration-500 group-hover:scale-[1.03] animate-fade"
-        />
-        <span className="absolute bottom-3 right-3 inline-flex items-center gap-1.5 rounded-full bg-white/90 px-3 py-1.5 text-sm font-medium shadow">
-          <IconZoom width={18} height={18} /> {t.a11y.zoom}
+        <AnimatePresence initial={false} mode="popLayout">
+          <m.div key={current.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }}>
+            <ProductImage media={current} locale={locale} priority={index === 0} sizes="(min-width: 1024px) 50vw, 100vw" className="aspect-square w-full object-cover" />
+          </m.div>
+        </AnimatePresence>
+        <span className="absolute bottom-3 right-3 inline-flex items-center gap-1.5 border-2 border-ink bg-white px-2 py-1 font-mono text-xs font-bold uppercase">
+          <IconZoom width={16} height={16} /> Zoom
         </span>
       </button>
 
-      <ul className="mt-3 flex gap-2 overflow-x-auto pb-1" aria-label="Galerie">
-        {items.map((m, i) => (
-          <li key={m.id} className="shrink-0">
+      <ul className="mt-4 grid grid-cols-6 gap-2" aria-label={t.hero.gallery}>
+        {items.map((it, i) => (
+          <li key={it.id}>
             <button
               type="button"
               onClick={() => setIndex(i)}
               aria-current={i === index}
-              aria-label={m.alt[locale]}
-              className={`block size-16 overflow-hidden rounded-xl border-2 transition sm:size-20 ${i === index ? "border-ink" : "border-transparent opacity-75 hover:opacity-100"}`}
+              aria-label={it.alt[locale]}
+              className={`block aspect-square w-full overflow-hidden border-[3px] transition ${i === index ? "border-accent" : "border-ink opacity-70 hover:opacity-100"}`}
             >
-              <ProductImage media={m} locale={locale} sizes="80px" className="size-full object-cover" />
+              <ProductImage media={it} locale={locale} sizes="96px" className="size-full object-cover" />
             </button>
           </li>
         ))}
       </ul>
-      <p className="mt-1 text-xs text-muted">{t.sections.zoomHint}</p>
 
       <dialog
         ref={dialog}
@@ -83,14 +90,14 @@ export function Gallery() {
           if (e.key === "ArrowLeft") go(-1);
         }}
         aria-label={current.alt[locale]}
-        className="m-auto h-dvh max-h-none w-screen max-w-none bg-ink/95 p-0 text-white open:animate-fade"
+        className="m-auto h-dvh max-h-none w-screen max-w-none bg-paper p-0 text-ink"
       >
         <div className="flex h-full flex-col">
-          <div className="flex items-center justify-between p-3">
-            <p className="px-2 text-sm text-white/80">
-              {index + 1} / {items.length}
+          <div className="flex items-center justify-between border-b-[3px] border-ink p-3">
+            <p className="font-mono text-sm font-bold">
+              {String(index + 1).padStart(2, "0")} / {String(items.length).padStart(2, "0")}
             </p>
-            <button type="button" onClick={() => setOpen(false)} className="inline-flex size-11 items-center justify-center rounded-full bg-white/10 hover:bg-white/20" aria-label={t.a11y.close}>
+            <button type="button" onClick={() => setOpen(false)} className="btn-press inline-flex size-11 items-center justify-center border-[3px] border-ink bg-white" aria-label={t.a11y.close}>
               <IconClose />
             </button>
           </div>
@@ -99,29 +106,24 @@ export function Gallery() {
               type="button"
               onClick={() => setZoomed((z) => !z)}
               onPointerMove={onMove}
-              className={`relative max-h-full max-w-[min(100%,900px)] ${zoomed ? "cursor-zoom-out" : "cursor-zoom-in"}`}
+              className={`relative max-h-full max-w-[min(100%,900px)] border-[3px] border-ink ${zoomed ? "cursor-zoom-out" : "cursor-zoom-in"}`}
               aria-label={t.a11y.zoom}
             >
-              <ProductImage
-                media={current}
-                locale={locale}
-                sizes="100vw"
-                className="max-h-[78dvh] w-auto object-contain transition-transform duration-300"
-              />
+              <ProductImage media={current} locale={locale} sizes="100vw" className="max-h-[76dvh] w-auto object-contain" />
               <span
                 className="pointer-events-none absolute inset-0"
-                style={zoomed ? { backgroundImage: `url(${current.src})`, backgroundSize: "220%", backgroundPosition: origin, backgroundColor: "#16202e" } : undefined}
+                style={zoomed ? { backgroundImage: `url(${current.src})`, backgroundSize: "220%", backgroundPosition: origin, backgroundColor: "#F4F3EF" } : undefined}
                 aria-hidden="true"
               />
             </button>
-            <button type="button" onClick={() => go(-1)} className="absolute left-2 top-1/2 inline-flex size-12 -translate-y-1/2 rotate-180 items-center justify-center rounded-full bg-white/15 hover:bg-white/25" aria-label={t.a11y.previous}>
-              <IconChevron />
+            <button type="button" onClick={() => go(-1)} className="btn-press absolute left-3 top-1/2 inline-flex size-12 -translate-y-1/2 items-center justify-center border-[3px] border-ink bg-white" aria-label={t.a11y.previous}>
+              <IconChevron className="rotate-180" />
             </button>
-            <button type="button" onClick={() => go(1)} className="absolute right-2 top-1/2 inline-flex size-12 -translate-y-1/2 items-center justify-center rounded-full bg-white/15 hover:bg-white/25" aria-label={t.a11y.next}>
+            <button type="button" onClick={() => go(1)} className="btn-press absolute right-3 top-1/2 inline-flex size-12 -translate-y-1/2 items-center justify-center border-[3px] border-ink bg-white" aria-label={t.a11y.next}>
               <IconChevron />
             </button>
           </div>
-          <p className="p-4 text-center text-sm text-white/80">{current.alt[locale]}</p>
+          <p className="border-t-[3px] border-ink p-3 text-center text-sm">{current.alt[locale]}</p>
         </div>
       </dialog>
     </div>

@@ -10,14 +10,14 @@ export function SectionCta({ id, secondary }: { id: string; secondary?: { href: 
   const { t, locale } = useStore();
   const pricing = useSelectionPricing();
   return (
-    <div className="mt-10 flex flex-col items-center gap-3 text-center">
-      <BuyNowButton source={`cta-${id}`} className="w-full max-w-sm text-lg" label={`${t.buy.orderNow} · ${formatMoney(pricing.subtotalCents, locale)}`} />
+    <div className="mx-auto mt-10 flex max-w-7xl flex-col items-start gap-3 px-4 sm:px-6">
+      <BuyNowButton source={`cta-${id}`} className="w-full max-w-sm" label={`${t.buy.orderNow} · ${formatMoney(pricing.subtotalCents, locale)}`} />
       {secondary && (
-        <a href={secondary.href} className="text-sm font-semibold text-ink underline underline-offset-4 hover:text-accent">
+        <a href={secondary.href} className="font-mono text-sm font-bold uppercase underline decoration-2 underline-offset-4">
           {secondary.label}
         </a>
       )}
-      <CheckoutAlert source={`cta-${id}`} className="w-full max-w-sm text-left" />
+      <CheckoutAlert source={`cta-${id}`} className="w-full max-w-sm" />
     </div>
   );
 }

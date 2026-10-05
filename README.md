@@ -1,6 +1,7 @@
 # Boréa : boutique monoproduit (Canada, FR/EN, Stripe Checkout)
 
-Boutique de dropshipping monoproduit construite avec **Next.js 16 (App Router), TypeScript et Tailwind CSS 4**.
+Boutique de dropshipping monoproduit construite avec **Next.js 16 (App Router), TypeScript, Tailwind CSS 4,
+Framer Motion et Zustand**, dans une direction artistique **néo-moderne / néo-brutaliste**.
 Elle inclut une base **libSQL/SQLite**, un paiement **Stripe Checkout** avec webhooks idempotents, un espace
 d'administration protégé et un traitement fournisseur manuel. Le français est la langue par défaut, l'anglais est disponible, et la devise est le CAD.
 
@@ -11,6 +12,36 @@ d'administration protégé et un traitement fournisseur manuel. Le français est
 > `product.confirmed` vaut `false`.
 
 Aperçus (générés par les tests e2e) : [`docs/preview/`](docs/preview/).
+
+### Design system
+
+Il est défini dans `src/app/globals.css` (`@theme`). Avec Tailwind 4, la configuration du thème se fait en CSS
+et non plus dans `tailwind.config`.
+
+| Élément | Valeur |
+| --- | --- |
+| Fond / texte | `#F4F3EF` / `#0E0E0E` |
+| Accent unique | `#FF3B00`, réservé aux CTA, prix et badges, toujours avec du **texte noir** (contraste 5,9:1, AA) |
+| Formes | Coins carrés, bordures 3 px, ombres dures `6px 6px 0 #000`, aucun dégradé, grille visible |
+| Titres | **Unbounded** 700 (hero : `clamp(3rem, 8vw, 7rem)`, interligne 0,95, -0,03em, majuscules) |
+| Corps | **Satoshi** (Fontshare), 17 px |
+| Prix et compteurs | **JetBrains Mono** |
+| Interactions | Boutons qui s'enfoncent (`.btn-press`), bandeau défilant, focus visible 2 px accent |
+
+**Polices.** Unbounded et JetBrains Mono sont sous licence OFL et passent par npm et `next/font` (préchargées).
+Satoshi est sous ITF Free Font License : l'auto-hébergement est autorisé, la redistribution interdite. Comme le
+dépôt est **public**, ses fichiers ne sont pas versionnés : `scripts/fetch-fonts.mjs` la télécharge depuis
+Fontshare au `npm run dev` / `npm run build`. Si le téléchargement échoue, une police système prend le relais.
+
+### Règles d'honnêteté appliquées par le code
+- **Note ★ et avis** : calculés uniquement à partir de `product.reviews` (vrais avis). Liste vide = rien d'affiché.
+- **Prix barré et badge « -XX % »** : seulement si `pricing.compareAt` est renseigné **avec une justification**,
+  ou pour la remise de quantité réelle (prix d'une unité × quantité).
+- **Barre « plus que X $ pour un cadeau »** : seulement si `gift.enabled`. Le cadeau est enregistré sur la
+  commande par le serveur et signalé dans l'admin pour être ajouté au colis.
+- **Pas de « stock limité »** ni de compte à rebours : le bandeau défilant ne contient que des arguments vrais
+  (livraison gratuite, retours 30 jours, paiement sécurisé, délai).
+- **Comparatif** : « Variable » plutôt qu'une affirmation non vérifiée sur les concurrents.
 
 ---
 
@@ -58,27 +89,29 @@ Toute l'information modifiable est centralisée :
 | Fichier | Contenu |
 | --- | --- |
 | `src/config/store.ts` | Marque, contact, identité légale, livraison (tarifs, seuil gratuit, délais), retours, quantité max., durée de session |
-| `src/config/product.ts` | Produit, textes FR/EN, variantes, **paliers de prix**, lots, médias, vidéo, bénéfices, étapes, caractéristiques, contenu du colis, FAQ, avis |
+| **`data/product.ts`** | **Fichier unique du produit** : nom, titre, problème résolu, variantes, prix et paliers, prix barré justifié, cadeau, médias, avant/après, caractéristiques, étapes, comparatif, FAQ, avis |
 | `src/content/fr.ts`, `en.ts` | Textes de l'interface |
 | `src/server/supplier-config.ts` | **Interne** : URL fournisseur, coût, correspondance des variantes (jamais envoyé au navigateur) |
 | `src/app/globals.css` (`@theme`) | Couleurs, polices, ombres |
-| `public/media/` | Médias (voir `public/media/README.md`) |
+| `public/product/` | Photos (`hero.jpg`, `angle-1.jpg`…), voir `public/product/README.md` |
 
 **Prix et lots.** Ils sont définis par des paliers de prix unitaire selon la quantité totale
 (`product.pricing.tiers`, en cents). Le palier 1 unité est le prix de référence qui justifie le prix
 barré et les économies affichées. Le calcul (`src/lib/pricing.ts`) est partagé par le navigateur et le
 serveur. Le pourcentage d'économie est arrondi à la baisse.
 
-**Médias.** Déposez vos photos et vidéos (dont vous détenez les droits) dans `public/media/product/`, puis
-modifiez `src`, `width`, `height`, `alt`, `provisional: false` et `rights` dans `product.ts`. Le hero est
-recadré en 4:3 sur mobile et en carré sur desktop : prévoyez un sujet centré. Les liens directs vers les images du fournisseur
-sont à éviter.
+**Médias.** Remplacez les JPG provisoires de `public/product/` par vos photos (dont vous détenez les droits)
+**en gardant les mêmes noms**, puis passez `provisional: false` dans `data/product.ts`. Les images de la
+galerie sont carrées : prévoyez un sujet centré. Les liens directs vers les images du fournisseur sont à éviter.
 
 **Avis.** La section reste masquée tant que `product.reviews` est vide. N'y mettez que de vrais avis,
 publiés avec l'accord de leur auteur.
 
-**Pages légales.** Les pages Contact, Livraison, Retours, Confidentialité et Conditions de vente
-(`src/components/info-pages.tsx`) affichent en surbrillance « À compléter » les champs manquants
+**Pages légales.** Les routes `/cgv`, `/confidentialite`, `/retours`, `/contact`, `/livraison` et
+`/suivi-commande` redirigent vers `/fr/…` (EN : `/en/terms`, `/en/privacy`…). Le contenu est dans
+`src/components/info-pages.tsx`. Le **suivi de commande** est un formulaire (numéro + courriel), limité
+à 10 recherches par 15 min, avec une réponse identique en cas d'erreur pour éviter l'énumération ; il n'affiche ni adresse ni montant.
+Les pages affichent en surbrillance « À compléter » les champs manquants
 de `store.legal` et `store.contact`. Ce sont des modèles à faire valider avant publication
 (Loi sur la protection du consommateur et Loi 25 au Québec).
 
@@ -178,17 +211,20 @@ Chaque page, action serveur et export revérifie la session, et `/admin` n'est p
 
 ## 8. Tests réalisés
 
-- `npm test` (62 tests) : prix, lots et paliers ; validation du panier ; **montants manipulés** (prix ou
+- `npm test` (63 tests) : prix, lots et paliers ; validation du panier ; **montants manipulés** (prix ou
   montant injecté, quantités 0, négatives, décimales, en texte, excessives, variante inconnue) ; CSRF ;
   limitation de débit ; double clic ; garde-fou des clés live ; paramètres Stripe ; validation des paramètres
   par **stripe-mock** (test ignoré si stripe-mock n'est pas lancé) ; webhooks : signature absente ou invalide,
   corps modifié, paiement confirmé, **événements répétés et simultanés**, paiements différés réussis ou échoués,
   désordre, expiration, anomalie de montant, courriel envoyé une seule fois ; jeton admin, proxy, CSV.
-- `npm run test:e2e` (26 tests, Pixel 7 et Chrome desktop) : rendu, absence de débordement horizontal,
-  variantes, quantités et lots, panier latéral, achat immédiat (un seul appel malgré le double clic),
+- `npm run test:e2e` (26 tests, Pixel 7 et Chrome desktop) : rendu, ordre des sections, absence de débordement horizontal,
+  absence de note, de prix barré ou de « stock limité » non justifiés, variantes, quantités, panier latéral et barre cadeau, suivi de commande, achat immédiat (un seul appel malgré le double clic),
   redirection Stripe (page Stripe simulée), succès confirmé par webhook signé, faux `session_id`, paiement
   différé puis échec, annulation, langue anglaise, pages légales, animations réduites, barre d'achat mobile
   (masquée sur les blocs d'achat et le pied de page), protection de l'admin, traitement d'une commande et export CSV.
+- **Lighthouse** (build de production, page `/fr`) : mobile **Performance 95**, Accessibilité 100, Bonnes pratiques 100 ;
+  desktop 100 / 100 / 100. Le SEO affiche 69 pour une **seule** raison : l'indexation est volontairement bloquée tant que
+  `product.confirmed` vaut `false`. Tous les autres contrôles SEO passent.
 - **Non réalisé ici** : un paiement réel sur la page Stripe hébergée, faute de clés de test dans l'environnement.
   Suivez le §4.6.
 
@@ -201,6 +237,6 @@ Sur un serveur classique (VPS), le fichier SQLite suffit : sauvegardez `data/`.
 
 ## 10. Avant d'accepter de vraies commandes
 
-Voir la liste dans `/admin` : fiche produit vérifiée, vrais médias et droits, prix et coût fournisseur habituel,
+Voir la liste dans `/admin` : fiche produit vérifiée, vrais médias et droits, vrais avis (ou aucun), cadeau réel (ou désactivé), prix et coût fournisseur habituel,
 délais et tarifs de livraison réels, politique de retour, contact et identité légale, taxes, Resend,
 URL HTTPS, achat test complet, puis seulement après tout cela les clés live avec `STORE_ALLOW_LIVE_PAYMENTS=true`.

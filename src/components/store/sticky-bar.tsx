@@ -1,15 +1,16 @@
 "use client";
 
+import { AnimatePresence, m } from "framer-motion";
 import { useEffect, useState } from "react";
 import { product } from "@/config/product";
 import { formatMoney } from "@/lib/money";
-import { BuyNowButton, useSelectionPricing } from "./buy-controls";
+import { AddToCartButton, useSelectionPricing } from "./buy-controls";
 import { useStore } from "./store-provider";
 
 /**
- * Barre d'achat fixe (mobile uniquement). Elle n'apparaît que lorsque les blocs
- * d'achat (hero, bloc final) et le pied de page sont hors écran, pour ne jamais
- * masquer de contrôle ; un espace équivalent est réservé en bas de page.
+ * Bouton « Ajouter au panier » collant en bas (mobile uniquement). Il n'apparaît qu'après
+ * le bloc d'achat du hero et disparaît dès que le CTA final ou le pied de page arrive,
+ * pour ne jamais masquer de contrôle ; un espace équivalent est réservé en bas de page.
  */
 export function StickyBuyBar() {
   const { t, locale, variantId, quantity, drawerOpen } = useStore();
@@ -17,45 +18,59 @@ export function StickyBuyBar() {
   const [visible, setVisible] = useState(false);
 
   useEffect(() => {
-    const ids = ["buy-box", "final-buy", "site-footer"];
-    const els = ids.map((id) => document.getElementById(id)).filter((e): e is HTMLElement => !!e);
-    if (!("IntersectionObserver" in window) || els.length === 0) return;
-    const seen = new Map<Element, boolean>();
     const hero = document.getElementById("buy-box");
-    const io = new IntersectionObserver((entries) => {
-      for (const e of entries) seen.set(e.target, e.isIntersecting);
-      const anyVisible = [...seen.values()].some(Boolean);
-      // Uniquement après avoir dépassé le bloc d'achat du hero.
+    const blockers = ["final-cta", "site-footer"].map((id) => document.getElementById(id)).filter((e): e is HTMLElement => !!e);
+    let frame = 0;
+    // Position recalculée au défilement (une fois par image) : fiable même après un saut d'ancre.
+    const update = () => {
+      frame = 0;
+      const vh = window.innerHeight;
       const pastHero = hero ? hero.getBoundingClientRect().bottom < 0 : true;
-      setVisible(!anyVisible && pastHero);
-    });
-    els.forEach((el) => io.observe(el));
-    return () => io.disconnect();
+      const blocked = blockers.some((el) => el.getBoundingClientRect().top < vh);
+      setVisible(pastHero && !blocked);
+    };
+    const onScroll = () => {
+      if (!frame) frame = requestAnimationFrame(update);
+    };
+    update();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    window.addEventListener("resize", onScroll);
+    return () => {
+      window.removeEventListener("scroll", onScroll);
+      window.removeEventListener("resize", onScroll);
+      cancelAnimationFrame(frame);
+    };
   }, []);
 
   const variant = product.variants.find((v) => v.id === variantId);
-  const show = visible && !drawerOpen;
 
   return (
     <>
-      <div className="h-[calc(var(--sticky-bar-h)+env(safe-area-inset-bottom))] md:hidden" aria-hidden="true" />
-      {show && (
-        <div
-          className="fixed inset-x-0 bottom-0 z-30 border-t border-line bg-white/95 px-4 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-3 shadow-[0_-8px_24px_-12px_rgb(22_32_46/0.25)] backdrop-blur animate-bar md:hidden"
-          role="region"
-          aria-label={t.buy.orderNow}
-        >
-          <div className="mx-auto flex max-w-xl items-center gap-3">
-            <div className="min-w-0 flex-1">
-              <p className="truncate text-xs text-muted">
-                {variant?.label[locale]} · ×{quantity}
-              </p>
-              <p className="font-display text-xl font-bold tabular-nums">{formatMoney(pricing.subtotalCents, locale)}</p>
+      <div className="h-[calc(var(--sticky-bar-h)+env(safe-area-inset-bottom))] lg:hidden" aria-hidden="true" />
+      <AnimatePresence>
+        {visible && !drawerOpen && (
+          <m.div
+            key="sticky"
+            initial={{ y: "110%" }}
+            animate={{ y: 0 }}
+            exit={{ y: "110%" }}
+            transition={{ type: "tween", duration: 0.2 }}
+            className="fixed inset-x-0 bottom-0 z-30 border-t-[3px] border-ink bg-paper px-4 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-3 lg:hidden"
+            role="region"
+            aria-label={t.buy.addToCart}
+          >
+            <div className="mx-auto flex max-w-xl items-center gap-3 pr-[6px]">
+              <div className="min-w-0 shrink-0">
+                <p className="truncate font-mono text-[11px] font-bold uppercase">
+                  {variant?.label[locale]} ×{quantity}
+                </p>
+                <p className="font-mono text-xl font-bold tabular-nums">{formatMoney(pricing.subtotalCents, locale)}</p>
+              </div>
+              <AddToCartButton className="min-w-0 flex-1 !min-h-12 !px-3 !text-xs" />
             </div>
-            <BuyNowButton source="sticky" className="shrink-0 px-5" />
-          </div>
-        </div>
-      )}
+          </m.div>
+        )}
+      </AnimatePresence>
     </>
   );
 }

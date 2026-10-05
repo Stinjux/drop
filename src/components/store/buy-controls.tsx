@@ -5,7 +5,7 @@ import { store } from "@/config/store";
 import { fmt } from "@/content";
 import { catalog, deliveryEstimate } from "@/lib/catalog";
 import { formatMoney } from "@/lib/money";
-import { baseUnitPrice, priceCart } from "@/lib/pricing";
+import { priceCart } from "@/lib/pricing";
 import { IconCart, IconLock } from "../ui/icons";
 import { btn, QuantityStepper, Spinner } from "../ui/primitives";
 import { CheckoutAlert } from "./checkout-alert";
@@ -17,39 +17,70 @@ export function useSelectionPricing() {
   return priceCart([{ variantId, quantity }], catalog);
 }
 
+/**
+ * Prix de référence barré et pourcentage : uniquement s'ils sont JUSTIFIÉS —
+ * soit un `compareAt` renseigné avec justification dans data/product.ts, soit la
+ * remise de quantité réelle (prix 1 unité × quantité).
+ */
+export function useReferencePrice() {
+  const pricing = useSelectionPricing();
+  const compare = product.pricing.compareAt;
+  const reference =
+    compare && compare.justification.trim() && compare.priceCents > pricing.lines[0].baseUnitPriceCents
+      ? compare.priceCents * pricing.totalQuantity
+      : pricing.savingsCents > 0
+        ? pricing.baseSubtotalCents
+        : null;
+  const percent = reference ? Math.floor(((reference - pricing.subtotalCents) * 100) / reference) : 0;
+  return { pricing, reference, percent };
+}
+
+export function PriceDisplay({ size = "lg" }: { size?: "lg" | "md" }) {
+  const { t, locale } = useStore();
+  const { pricing, reference, percent } = useReferencePrice();
+  return (
+    <div aria-live="polite" className="flex flex-wrap items-center gap-x-3 gap-y-2">
+      <span className={`border-[3px] border-ink bg-accent px-2 font-mono font-bold tabular-nums tracking-tight text-ink ${size === "lg" ? "text-4xl sm:text-5xl" : "text-3xl"}`} data-testid="price">
+        {formatMoney(pricing.subtotalCents, locale)}
+      </span>
+      {reference && (
+        <>
+          <s className="font-mono text-lg text-muted tabular-nums" aria-label={`${t.hero.compareAt} ${formatMoney(reference, locale)}`}>
+            {formatMoney(reference, locale)}
+          </s>
+          {percent > 0 && (
+            <span className="border-2 border-ink bg-accent px-2 py-0.5 font-mono text-sm font-bold text-ink">{fmt(t.hero.discount, { percent })}</span>
+          )}
+        </>
+      )}
+    </div>
+  );
+}
+
 export function VariantPicker({ idPrefix }: { idPrefix: string }) {
   const { t, locale, variantId, setVariantId } = useStore();
   if (product.variants.length < 2) return null;
   const current = product.variants.find((v) => v.id === variantId);
   return (
     <fieldset>
-      <legend className="mb-2 text-sm font-semibold">
-        {t.buy.variant} : <span className="font-normal text-muted">{current?.label[locale]}</span>
+      <legend className="mb-2 font-mono text-xs font-bold uppercase tracking-wider">
+        {t.buy.variant} : <span className="font-sans text-sm font-medium normal-case tracking-normal">{current?.label[locale]}</span>
       </legend>
       <div className="flex flex-wrap gap-2">
         {product.variants.map((v) => {
           const id = `${idPrefix}-variant-${v.id}`;
+          const selected = v.id === variantId;
           return (
             <label
               key={v.id}
               htmlFor={id}
-              className={`relative inline-flex min-h-11 cursor-pointer items-center gap-2 rounded-full border-2 px-4 py-2 text-sm font-medium transition has-[:focus-visible]:outline-3 has-[:focus-visible]:outline-accent ${
-                v.id === variantId ? "border-ink bg-white" : "border-line bg-white/60 hover:border-ink-soft"
-              } ${v.available ? "" : "cursor-not-allowed opacity-50"}`}
+              className={`inline-flex min-h-12 cursor-pointer items-center gap-2 border-[3px] border-ink px-3 py-2 text-sm font-bold transition has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-accent ${
+                selected ? "bg-ink text-paper" : "bg-white text-ink hover:bg-paper"
+              } ${v.available ? "" : "cursor-not-allowed opacity-40 line-through"}`}
             >
-              <input
-                id={id}
-                type="radio"
-                name={`${idPrefix}-variant`}
-                value={v.id}
-                checked={v.id === variantId}
-                disabled={!v.available}
-                onChange={() => setVariantId(v.id)}
-                className="sr-only"
-              />
-              {v.swatch && <span className="size-5 rounded-full border border-black/10" style={{ background: v.swatch }} aria-hidden="true" />}
+              <input id={id} type="radio" name={`${idPrefix}-variant`} value={v.id} checked={selected} disabled={!v.available} onChange={() => setVariantId(v.id)} className="sr-only" />
+              {v.swatch && <span className="size-5 border-2 border-current" style={{ background: v.swatch }} aria-hidden="true" />}
               {v.label[locale]}
-              {!v.available && <span className="text-xs">({t.buy.unavailable})</span>}
             </label>
           );
         })}
@@ -61,11 +92,11 @@ export function VariantPicker({ idPrefix }: { idPrefix: string }) {
 export function BuyNowButton({ source, className = "", label, quantity }: { source: string; className?: string; label?: string; quantity?: number }) {
   const s = useStore();
   const loading = s.checkout.status === "loading";
-  const mine = loading && s.checkout.status === "loading" && s.checkout.source === source;
+  const mine = s.checkout.status === "loading" && s.checkout.source === source;
   return (
     <button
       type="button"
-      className={`${btn.primary} ${className}`}
+      className={`${btn.secondary} ${className}`}
       disabled={loading}
       aria-busy={mine}
       onClick={() => s.startCheckout([{ variantId: s.variantId, quantity: quantity ?? s.quantity }], source)}
@@ -83,47 +114,30 @@ export function BuyNowButton({ source, className = "", label, quantity }: { sour
   );
 }
 
+export function AddToCartButton({ className = "" }: { className?: string }) {
+  const s = useStore();
+  return (
+    <button type="button" className={`${btn.primary} ${className}`} onClick={() => s.addToCart({ variantId: s.variantId, quantity: s.quantity })}>
+      <IconCart width={20} height={20} /> {s.t.buy.addToCart}
+    </button>
+  );
+}
+
 export function BuyControls({ source, showVariant = true }: { source: string; showVariant?: boolean }) {
   const s = useStore();
-  const { t, locale } = s;
-  const pricing = useSelectionPricing();
-  const base = baseUnitPrice(product.pricing.tiers);
+  const { t } = s;
   const est = deliveryEstimate();
-  const ship = catalog.shipping;
-  const shippingText =
-    pricing.shippingCents === 0
-      ? t.buy.shippingFree
-      : ship.freeFromSubtotalCents !== null
-        ? fmt(t.buy.shippingLine, { amount: formatMoney(ship.amountCents, locale), threshold: formatMoney(ship.freeFromSubtotalCents, locale) })
-        : fmt(t.buy.shippingFlat, { amount: formatMoney(ship.amountCents, locale) });
-
   return (
     <div className="space-y-5">
-      <div aria-live="polite">
-        <p className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-          <span className="font-display text-4xl font-bold tabular-nums">{formatMoney(pricing.subtotalCents, locale)}</span>
-          {pricing.savingsCents > 0 && (
-            <>
-              <s className="text-lg text-muted tabular-nums" aria-label={`${t.offers.reference} ${formatMoney(pricing.baseSubtotalCents, locale)}`}>
-                {formatMoney(pricing.baseSubtotalCents, locale)}
-              </s>
-              <span className="rounded-full bg-pine-soft px-2.5 py-0.5 text-sm font-semibold text-pine">
-                {fmt(t.buy.youSave, { amount: formatMoney(pricing.savingsCents, locale) })}
-              </span>
-            </>
-          )}
-        </p>
-        <p className="mt-1 text-sm text-muted">
-          {s.quantity > 1 ? fmt(t.buy.unitPriceAt, { price: formatMoney(pricing.lines[0].unitPriceCents, locale) }) : `${formatMoney(base, locale)} ${t.buy.perUnit}`}
-          {" · "}
-          {s.taxesAtCheckout ? t.buy.taxesExtra : t.buy.taxesNone}
-        </p>
+      <div>
+        <PriceDisplay />
+        <p className="mt-1 text-sm text-muted">{s.taxesAtCheckout ? t.buy.taxesExtra : t.buy.taxesNone}</p>
       </div>
 
       {showVariant && <VariantPicker idPrefix={source} />}
 
       <div>
-        <label htmlFor={`${source}-qty`} className="mb-2 block text-sm font-semibold">
+        <label htmlFor={`${source}-qty`} className="mb-2 block font-mono text-xs font-bold uppercase tracking-wider">
           {t.buy.quantity}
         </label>
         <QuantityStepper
@@ -136,15 +150,13 @@ export function BuyControls({ source, showVariant = true }: { source: string; sh
         {s.quantity >= store.maxQuantityPerOrder && <p className="mt-2 text-xs text-muted">{fmt(t.buy.maxReached, { max: store.maxQuantityPerOrder })}</p>}
       </div>
 
-      <div className="grid gap-3 lg:grid-cols-[1fr_auto]">
-        <BuyNowButton source={source} className="w-full whitespace-nowrap text-lg" />
-        <button type="button" className={`${btn.secondary} w-full whitespace-nowrap`} onClick={() => s.addToCart({ variantId: s.variantId, quantity: s.quantity })}>
-          <IconCart width={20} height={20} /> {t.buy.addToCart}
-        </button>
+      <div className="grid gap-4 pr-[6px]">
+        <AddToCartButton className="w-full" />
+        <BuyNowButton source={source} className="w-full" />
       </div>
       <CheckoutAlert source={source} />
-      <p className="text-sm text-muted">
-        {shippingText} · {fmt(t.buy.delivery, est)}
+      <p className="font-mono text-xs font-bold uppercase tracking-wide">
+        {t.buy.shippingFree} · {fmt(t.buy.delivery, est)}
       </p>
     </div>
   );

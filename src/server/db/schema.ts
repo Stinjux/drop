@@ -100,4 +100,8 @@ export const migrations: Array<{ version: number; statements: string[] }> = [
       )`,
     ],
   },
+  {
+    version: 2,
+    statements: [`ALTER TABLE orders ADD COLUMN gift_label TEXT`],
+  },
 ];

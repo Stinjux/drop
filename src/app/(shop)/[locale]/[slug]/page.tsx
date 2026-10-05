@@ -28,7 +28,7 @@ export default async function InfoPage({ params }: PageProps<"/[locale]/[slug]">
   if (!id) notFound();
   return (
     <article className="mx-auto max-w-3xl px-4 py-12 sm:px-6 sm:py-16">
-      <h1 className="font-display text-4xl font-bold tracking-tight">{INFO_TITLES[id][locale]}</h1>
+      <h1 className="display-lg uppercase">{INFO_TITLES[id][locale]}</h1>
       <InfoPageContent id={id} locale={locale} />
     </article>
   );

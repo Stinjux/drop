@@ -19,6 +19,8 @@ export type SupplierInstructions = {
   phone: string | null;
   estimatedTotalCostCents: number | null;
   costVerified: boolean;
+  /** Cadeau promis au client, à ajouter au colis. */
+  gift: string | null;
   notes: string;
 };
 

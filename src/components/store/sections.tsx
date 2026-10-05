@@ -1,35 +1,105 @@
-import Link from "next/link";
-import { getMedia, product } from "@/config/product";
+import Image from "next/image";
+import { getMedia, product, reviewSummary } from "@/config/product";
 import { store } from "@/config/store";
-import type { Locale } from "@/config/types";
-import { fmt, getDictionary, infoHref } from "@/content";
+import type { Locale, Localized } from "@/config/types";
+import { fmt, getDictionary } from "@/content";
 import { defaultShipping, deliveryEstimate } from "@/lib/catalog";
-import { formatMoney } from "@/lib/money";
-import { BenefitIcons, IconChat, IconChevron, IconLock, IconReturn, IconTruck } from "../ui/icons";
+import { FeatureIcons, IconChat, IconCheck, IconClose, IconLock, IconReturn, IconTruck } from "../ui/icons";
 import { Eyebrow, ProductImage, Reveal, SectionTitle } from "../ui/primitives";
+import { FaqAccordion } from "./faq-accordion";
 
-const wrap = "mx-auto max-w-6xl px-4 sm:px-6";
+const wrap = "mx-auto max-w-7xl px-4 sm:px-6";
 
-export function Benefits({ locale }: { locale: Locale }) {
-  const t = getDictionary(locale);
+/** 4. Bande de réassurance */
+export function ReassuranceBand({ locale }: { locale: Locale }) {
+  const r = getDictionary(locale).blocks.reassurance;
+  const est = deliveryEstimate();
+  const items = [
+    { icon: IconTruck, title: r.shipping, text: fmt(r.shippingText, est) },
+    { icon: IconLock, title: r.payment, text: r.paymentText },
+    { icon: IconReturn, title: fmt(r.returns, { days: store.returns.windowDays }), text: r.returnsText },
+    { icon: IconChat, title: r.support, text: r.supportText },
+  ];
+  return (
+    <section aria-label={r.payment} className="border-b-[3px] border-ink bg-white">
+      <ul className="mx-auto grid max-w-7xl grid-cols-2 lg:grid-cols-4">
+        {items.map((it, i) => (
+          <li key={i} className={`flex items-start gap-3 border-ink p-4 sm:p-6 ${i % 2 === 0 ? "border-r-[3px]" : ""} ${i < 2 ? "border-b-[3px] lg:border-b-0" : ""} ${i === 1 ? "lg:border-r-[3px]" : ""}`}>
+            <span className="inline-flex size-10 shrink-0 items-center justify-center border-[3px] border-ink bg-accent">
+              <it.icon width={20} height={20} />
+            </span>
+            <div className="min-w-0">
+              <p className="font-display text-xs font-bold uppercase leading-tight sm:text-sm">{it.title}</p>
+              <p className="mt-1 text-sm text-muted">{it.text}</p>
+            </div>
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
+}
+
+/** 5. Problème → solution (avant / après) */
+export function ProblemSolution({ locale }: { locale: Locale }) {
+  const t = getDictionary(locale).blocks;
+  const ps = product.problemSolution;
+  const col = (side: typeof ps.before, kind: "before" | "after") => (
+    <div className={`flex flex-col border-[3px] border-ink ${kind === "after" ? "bg-white shadow-[var(--shadow-hard)]" : "bg-sand"}`}>
+      <div className="relative border-b-[3px] border-ink">
+        <ProductImage media={getMedia(side.mediaId)} locale={locale} sizes="(min-width: 768px) 45vw, 100vw" className="aspect-[4/3] w-full object-cover" />
+        <span className={`absolute left-0 top-0 border-b-[3px] border-r-[3px] border-ink px-3 py-1 font-display text-sm font-bold uppercase ${kind === "after" ? "bg-accent" : "bg-white"}`}>
+          {side.title[locale]}
+        </span>
+      </div>
+      <ul className="space-y-3 p-5 sm:p-6">
+        {side.points.map((p, i) => (
+          <li key={i} className="flex items-start gap-3">
+            <span className={`mt-0.5 inline-flex size-6 shrink-0 items-center justify-center border-2 border-ink ${kind === "after" ? "bg-accent" : "bg-white"}`}>
+              {kind === "after" ? <IconCheck width={16} height={16} /> : <IconClose width={14} height={14} />}
+            </span>
+            <span>{p[locale]}</span>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
   return (
     <div className={wrap}>
-      <Reveal className="mx-auto max-w-2xl text-center">
-        <Eyebrow>{t.sections.benefitsEyebrow}</Eyebrow>
-        <SectionTitle id="benefits-title">{t.sections.benefitsTitle}</SectionTitle>
+      <Reveal>
+        <Eyebrow>{t.problemEyebrow}</Eyebrow>
+        <SectionTitle id="problem-title">{product.problemSolved[locale]}</SectionTitle>
       </Reveal>
-      <ul className={`mt-10 grid gap-4 sm:grid-cols-2 ${product.benefits.length >= 4 ? "lg:grid-cols-4" : "lg:grid-cols-3"}`}>
-        {product.benefits.map((b, i) => {
-          const Icon = BenefitIcons[b.icon];
+      <div className="mt-10 grid grid-cols-1 gap-6 pr-[6px] md:grid-cols-2">
+        <Reveal>{col(ps.before, "before")}</Reveal>
+        <Reveal delay={100}>{col(ps.after, "after")}</Reveal>
+      </div>
+    </div>
+  );
+}
+
+/** 6. Caractéristiques en grille modulaire (cellules égales, bordures visibles) */
+export function Features({ locale }: { locale: Locale }) {
+  const t = getDictionary(locale).blocks;
+  const n = product.features.length;
+  return (
+    <div className={wrap}>
+      <Reveal>
+        <Eyebrow>{t.featuresEyebrow}</Eyebrow>
+        <SectionTitle id="features-title">{t.featuresTitle}</SectionTitle>
+      </Reveal>
+      <ul className={`mt-10 grid grid-cols-1 border-l-[3px] border-t-[3px] border-ink sm:grid-cols-2 ${n % 3 === 0 ? "lg:grid-cols-3" : "lg:grid-cols-4"}`}>
+        {product.features.map((f, i) => {
+          const Icon = FeatureIcons[f.icon];
           return (
-            <li key={i}>
-              <Reveal delay={i * 80} className="h-full rounded-3xl bg-white p-6 ring-1 ring-line">
-                <span className="inline-flex size-12 items-center justify-center rounded-2xl bg-accent-soft text-accent">
-                  <Icon width={26} height={26} />
+            <li key={i} className="flex flex-col border-b-[3px] border-r-[3px] border-ink bg-white p-6 transition-colors hover:bg-paper">
+              <div className="flex items-start justify-between">
+                <span className="inline-flex size-12 items-center justify-center border-[3px] border-ink bg-accent">
+                  <Icon width={24} height={24} />
                 </span>
-                <h3 className="mt-4 font-display text-xl font-bold">{b.title[locale]}</h3>
-                <p className="mt-2 leading-relaxed text-ink-soft">{b.text[locale]}</p>
-              </Reveal>
+                <span className="font-mono text-sm font-bold text-muted">{String(i + 1).padStart(2, "0")}</span>
+              </div>
+              <h3 className="mt-6 font-display text-lg font-bold uppercase leading-tight">{f.title[locale]}</h3>
+              <p className="mt-2 text-muted">{f.text[locale]}</p>
             </li>
           );
         })}
@@ -38,127 +108,66 @@ export function Benefits({ locale }: { locale: Locale }) {
   );
 }
 
-export function Demo({ locale }: { locale: Locale }) {
-  const t = getDictionary(locale);
-  const lifestyle = getMedia("lifestyle");
-  return (
-    <div className={`${wrap} grid grid-cols-1 items-center gap-10 md:grid-cols-2`}>
-      <Reveal className="order-2 md:order-1">
-        <Eyebrow>{t.sections.demoEyebrow}</Eyebrow>
-        <SectionTitle id="demo-title">{fmt(t.sections.demoTitle, { count: product.steps.length })}</SectionTitle>
-        <ol className="mt-8 space-y-5">
-          {product.steps.map((s, i) => (
-            <li key={i} className="flex gap-4">
-              <span className="inline-flex size-10 shrink-0 items-center justify-center rounded-full bg-ink font-display text-lg font-bold text-white">{i + 1}</span>
-              <div>
-                <h3 className="font-display text-lg font-bold">{s.title[locale]}</h3>
-                <p className="mt-1 leading-relaxed text-ink-soft">{s.text[locale]}</p>
-              </div>
-            </li>
-          ))}
-        </ol>
-      </Reveal>
-      <Reveal className="order-1 md:order-2">
-        <div className="relative overflow-hidden rounded-[28px] bg-sand shadow-[var(--shadow-soft)]">
-          {product.video ? (
-            <video controls playsInline preload="none" poster={product.video.poster} className="aspect-[16/10] w-full object-cover" aria-label={product.video.title[locale]}>
-              <source src={product.video.src} />
-            </video>
-          ) : (
-            <>
-              <ProductImage media={lifestyle} locale={locale} sizes="(min-width: 768px) 50vw, 100vw" className="aspect-[16/10] w-full object-cover" />
-              <p className="absolute bottom-3 left-3 rounded-full bg-white/90 px-3 py-1 text-xs font-medium text-ink-soft">{t.sections.demoVideoMissing}</p>
-            </>
-          )}
-        </div>
-      </Reveal>
-    </div>
-  );
-}
-
-export function DetailsSpecs({ locale }: { locale: Locale }) {
-  const t = getDictionary(locale);
-  return (
-    <div className="space-y-8">
-      <div>
-        <h3 className="font-display text-xl font-bold">{t.sections.specs}</h3>
-        <dl className="mt-4 divide-y divide-line overflow-hidden rounded-2xl bg-white ring-1 ring-line">
-          {product.specs.map((s, i) => (
-            <div key={i} className="grid grid-cols-[40%_1fr] gap-4 px-4 py-3 text-sm sm:px-5">
-              <dt className="font-semibold">{s.label[locale]}</dt>
-              <dd className="text-ink-soft">{s.value[locale]}</dd>
-            </div>
-          ))}
-        </dl>
-      </div>
-      <div>
-        <h3 className="font-display text-xl font-bold">{t.sections.inTheBox}</h3>
-        <ul className="mt-4 space-y-2">
-          {product.packageContents.map((c, i) => (
-            <li key={i} className="flex items-center gap-3 rounded-xl bg-white px-4 py-3 text-sm ring-1 ring-line">
-              <span className="size-2 rounded-full bg-accent" aria-hidden="true" />
-              {c[locale]}
-            </li>
-          ))}
-        </ul>
-      </div>
-    </div>
-  );
-}
-
-export function Reassurance({ locale }: { locale: Locale }) {
-  const t = getDictionary(locale);
-  const est = deliveryEstimate();
-  const items = [
-    { icon: IconLock, title: t.reassurance.paymentTitle, text: t.reassurance.paymentText, href: null },
-    { icon: IconTruck, title: t.reassurance.shippingTitle, text: fmt(t.reassurance.shippingText, est), href: infoHref(locale, "shipping") },
-    { icon: IconChat, title: t.reassurance.supportTitle, text: fmt(t.reassurance.supportText, { response: store.contact.responseTime[locale] }), href: infoHref(locale, "contact") },
-    { icon: IconReturn, title: t.reassurance.returnsTitle, text: fmt(t.reassurance.returnsText, { days: store.returns.windowDays }), href: infoHref(locale, "returns") },
-  ];
+/** 7. Comment ça marche — 3 étapes, gros chiffres en mono */
+export function HowItWorks({ locale }: { locale: Locale }) {
+  const t = getDictionary(locale).blocks;
   return (
     <div className={wrap}>
-      <Reveal className="text-center">
-        <SectionTitle id="reassurance-title">{t.sections.reassuranceTitle}</SectionTitle>
+      <Reveal>
+        <Eyebrow>{t.howEyebrow}</Eyebrow>
+        <SectionTitle id="how-title">{t.howTitle}</SectionTitle>
       </Reveal>
-      <ul className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {items.map((it, i) => (
+      <ol className="mt-10 grid grid-cols-1 gap-6 pr-[6px] md:grid-cols-3">
+        {product.steps.map((s, i) => (
           <li key={i}>
-            <Reveal delay={i * 70} className="h-full rounded-3xl bg-pine-soft/60 p-6">
-              <it.icon width={28} height={28} className="text-pine" />
-              <h3 className="mt-3 font-display text-lg font-bold">{it.title}</h3>
-              <p className="mt-2 text-sm leading-relaxed text-ink-soft">{it.text}</p>
-              {it.href && (
-                <Link href={it.href} className="mt-3 inline-flex items-center gap-1 text-sm font-semibold text-pine underline-offset-4 hover:underline">
-                  {it.title} <IconChevron width={16} height={16} />
-                </Link>
-              )}
+            <Reveal delay={i * 90} className="h-full border-[3px] border-ink bg-white p-6 shadow-[var(--shadow-hard)]">
+              <span className="block font-mono text-7xl font-bold leading-none tracking-tighter text-ink sm:text-8xl" aria-hidden="true">
+                {String(i + 1).padStart(2, "0")}
+              </span>
+              <h3 className="mt-6 border-t-[3px] border-ink pt-4 font-display text-lg font-bold uppercase">
+                <span className="sr-only">{i + 1}. </span>
+                {s.title[locale]}
+              </h3>
+              <p className="mt-2 text-muted">{s.text[locale]}</p>
             </Reveal>
           </li>
         ))}
-      </ul>
+      </ol>
     </div>
   );
 }
 
-/** Masquée tant qu'aucun avis réel n'est configuré. */
+/** 8. Avis clients — masqué tant qu'il n'y a pas de VRAIS avis. */
 export function Reviews({ locale }: { locale: Locale }) {
-  if (product.reviews.length === 0) return null;
+  const summary = reviewSummary();
+  if (!summary) return null;
   const t = getDictionary(locale);
   return (
-    <section id="reviews" aria-labelledby="reviews-title" className="py-16">
+    <section id="reviews" aria-labelledby="reviews-title" className="border-b-[3px] border-ink py-16 sm:py-24">
       <div className={wrap}>
-        <SectionTitle id="reviews-title">{t.sections.reviewsTitle}</SectionTitle>
-        <ul className="mt-8 grid gap-4 md:grid-cols-3">
+        <Eyebrow>{t.blocks.reviewsEyebrow}</Eyebrow>
+        <SectionTitle id="reviews-title">{t.blocks.reviewsTitle}</SectionTitle>
+        <p className="mt-4 font-mono text-lg font-bold">
+          {"★".repeat(Math.round(summary.average))} {fmt(t.hero.reviews, { avg: summary.average.toFixed(1), count: summary.count })}
+        </p>
+        <ul className="mt-10 grid grid-cols-1 border-l-[3px] border-t-[3px] border-ink sm:grid-cols-2 lg:grid-cols-3">
           {product.reviews.map((r, i) => (
-            <li key={i} className="rounded-3xl bg-white p-6 ring-1 ring-line">
-              <p className="text-accent" aria-label={`${r.rating}/5`}>
-                {"★".repeat(r.rating)}
-                <span className="text-line">{"★".repeat(5 - r.rating)}</span>
-              </p>
-              <blockquote className="mt-3 leading-relaxed">{r.text[locale]}</blockquote>
-              <p className="mt-3 text-sm font-semibold">
-                {r.author} <span className="font-normal text-muted">· {r.date}</span>
-              </p>
+            <li key={i} className="flex flex-col border-b-[3px] border-r-[3px] border-ink bg-white">
+              {r.photo && (
+                <Image src={r.photo} alt="" width={600} height={450} sizes="(min-width: 1024px) 33vw, 100vw" className="aspect-[4/3] w-full border-b-[3px] border-ink object-cover" />
+              )}
+              <div className="flex flex-1 flex-col p-6">
+                <p className="font-mono text-lg" aria-label={`${r.rating}/5`}>
+                  {"★".repeat(r.rating)}
+                  <span className="opacity-25">{"★".repeat(5 - r.rating)}</span>
+                </p>
+                <blockquote className="mt-3 flex-1">« {r.text[locale]} »</blockquote>
+                <p className="mt-4 font-display text-sm font-bold uppercase">{r.author}</p>
+                <p className="font-mono text-xs text-muted">
+                  {r.city} · {r.date}
+                  {r.verifiedPurchase && ` · ${t.blocks.verified}`}
+                </p>
+              </div>
             </li>
           ))}
         </ul>
@@ -167,44 +176,81 @@ export function Reviews({ locale }: { locale: Locale }) {
   );
 }
 
+/** 9. Comparatif « Nous vs les autres » */
+export function Comparison({ locale }: { locale: Locale }) {
+  const t = getDictionary(locale).blocks;
+  const cell = (v: boolean | Localized, us: boolean) =>
+    typeof v === "boolean" ? (
+      <span className={`inline-flex size-8 items-center justify-center border-[3px] border-ink ${v ? (us ? "bg-accent" : "bg-white") : "bg-white"}`}>
+        {v ? <IconCheck width={18} height={18} /> : <IconClose width={16} height={16} />}
+        <span className="sr-only">{v ? t.yes : t.no}</span>
+      </span>
+    ) : (
+      <span className="font-mono text-xs font-bold sm:text-sm">{v[locale]}</span>
+    );
+  return (
+    <div className={wrap}>
+      <Reveal>
+        <Eyebrow>{t.compareEyebrow}</Eyebrow>
+        <SectionTitle id="compare-title">{t.compareTitle}</SectionTitle>
+      </Reveal>
+      <div className="mt-10 overflow-x-auto pb-[6px] pr-[6px]">
+        <table className="w-full border-collapse border-[3px] border-ink bg-white text-left shadow-[var(--shadow-hard)]">
+          <thead>
+            <tr>
+              <th scope="col" className="border-[3px] border-ink p-2 font-mono text-[11px] font-bold uppercase tracking-wider sm:p-4 sm:text-xs">
+                {t.compareFeature}
+              </th>
+              <th scope="col" className="w-[24%] border-[3px] border-ink bg-accent p-2 text-center font-display text-[11px] font-bold uppercase sm:p-4 sm:text-sm">
+                {store.brand.name}
+              </th>
+              <th scope="col" className="w-[28%] border-[3px] border-ink p-2 text-center font-display text-[11px] font-bold uppercase sm:p-4 sm:text-sm">
+                {product.comparison.othersLabel[locale]}
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            {product.comparison.rows.map((r, i) => (
+              <tr key={i}>
+                <th scope="row" className="border-[3px] border-ink p-2 text-sm font-semibold sm:p-4 sm:text-base">
+                  {r.label[locale]}
+                </th>
+                <td className="border-[3px] border-ink p-2 text-center sm:p-4">{cell(r.us, true)}</td>
+                <td className="border-[3px] border-ink p-2 text-center sm:p-4">{cell(r.others, false)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+/** 10. FAQ en accordéon (livraison, retours, garantie, compatibilité) */
 export function Faq({ locale, taxesAtCheckout }: { locale: Locale; taxesAtCheckout: boolean }) {
   const t = getDictionary(locale);
   const ship = defaultShipping;
   const est = deliveryEstimate();
-  const shippingText =
-    ship.freeFromSubtotalCents !== null
-      ? fmt(t.buy.shippingLine, { amount: formatMoney(ship.amountCents, locale), threshold: formatMoney(ship.freeFromSubtotalCents, locale) })
-      : fmt(t.buy.shippingFlat, { amount: formatMoney(ship.amountCents, locale) });
   const g = t.faqGeneral;
   const items = [
-    ...product.faq.map((f) => ({ q: f.q[locale], a: f.a[locale] })),
-    { q: g.shippingQ, a: fmt(g.shippingA, { shipping: shippingText }) },
     {
       q: g.delayQ,
       a: fmt(g.delayA, { pmin: ship.processingDays.min, pmax: ship.processingDays.max, tmin: ship.transitDays.min, tmax: ship.transitDays.max, min: est.min, max: est.max }),
     },
+    { q: g.shippingQ, a: fmt(g.shippingA, { shipping: t.buy.shippingFree }) },
     { q: g.returnsQ, a: fmt(g.returnsA, { days: store.returns.windowDays }) },
+    ...product.faq.map((f) => ({ q: f.q[locale], a: f.a[locale] })),
     { q: g.paymentQ, a: g.paymentA },
     { q: g.taxesQ, a: taxesAtCheckout ? g.taxesExtra : g.taxesNone },
     { q: g.accountQ, a: g.accountA },
   ];
   return (
-    <div className="mx-auto max-w-3xl px-4 sm:px-6">
-      <Reveal className="text-center">
-        <Eyebrow>{t.sections.faqEyebrow}</Eyebrow>
-        <SectionTitle id="faq-title">{t.sections.faqTitle}</SectionTitle>
+    <div className="mx-auto max-w-4xl px-4 sm:px-6">
+      <Reveal>
+        <Eyebrow>{t.nav.faq}</Eyebrow>
+        <SectionTitle id="faq-title">{t.blocks.faqTitle}</SectionTitle>
       </Reveal>
-      <div className="mt-8 divide-y divide-line overflow-hidden rounded-3xl bg-white ring-1 ring-line">
-        {items.map((it, i) => (
-          <details key={i} className="group">
-            <summary className="flex cursor-pointer items-center justify-between gap-4 px-5 py-4 font-semibold transition hover:bg-sand/60 sm:px-6">
-              {it.q}
-              <IconChevron width={20} height={20} className="shrink-0 rotate-90 transition group-open:-rotate-90" />
-            </summary>
-            <p className="px-5 pb-5 leading-relaxed text-ink-soft sm:px-6">{it.a}</p>
-          </details>
-        ))}
-      </div>
+      <FaqAccordion items={items} />
     </div>
   );
 }

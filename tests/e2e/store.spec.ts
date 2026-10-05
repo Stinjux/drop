@@ -27,7 +27,7 @@ async function sendWebhook(page: Page, type: string, session: Record<string, unk
 async function checkoutAndGetSession(page: Page): Promise<string> {
   const hits = await interceptStripe(page);
   await page.goto("/fr");
-  await page.locator("#buy-box").getByRole("button", { name: /Commander maintenant/ }).click();
+  await page.locator("#buy-box").getByRole("button", { name: /Acheter maintenant/ }).click();
   await page.waitForURL(/checkout\.stripe\.com/);
   return hits[0].split("/").pop() as string;
 }
@@ -55,10 +55,18 @@ test.describe("boutique", () => {
     await expect(page.locator("html")).toHaveAttribute("lang", "fr-CA");
     await expect(page.getByTestId("preview-banner")).toBeVisible();
     await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
-    await expect(page.locator("#buy-box").getByRole("button", { name: /Commander maintenant/ })).toBeVisible();
-    await expect(page.getByRole("link", { name: /Voir le produit en action/ })).toBeVisible();
-    // Section avis masquée sans vrais avis.
+    await expect(page.locator("#buy-box").getByRole("button", { name: /Acheter maintenant/ })).toBeVisible();
+    await expect(page.locator("#buy-box").getByRole("button", { name: "Ajouter au panier" })).toBeVisible();
+    // Bandeau défilant : arguments vrais, aucune fausse rareté.
+    await expect(page.getByText(/LIVRAISON GRATUITE — 30 JOURS SATISFAIT OU REMBOURSÉ/)).toBeAttached();
+    await expect(page.getByText(/stock limité/i)).toHaveCount(0);
+    // Sans vrais avis : ni section avis, ni note étoilée, ni prix barré injustifié.
     await expect(page.locator("#reviews")).toHaveCount(0);
+    await expect(page.getByText("★")).toHaveCount(0);
+    await expect(page.locator("#buy-box s")).toHaveCount(0);
+    // Ordre des sections demandé.
+    const ids = await page.locator("main > section[id]").evaluateAll((els) => els.map((e) => e.id));
+    expect(ids).toEqual(["problem", "features", "how", "compare", "faq", "final-cta"]);
     // Aucun débordement horizontal.
     // Aucun élément plus large que l'écran (sinon le navigateur mobile élargit la fenêtre de mise en page).
     const widths = await page.evaluate(() => ({ scroll: document.documentElement.scrollWidth, layout: window.innerWidth, client: document.documentElement.clientWidth }));
@@ -73,46 +81,50 @@ test.describe("boutique", () => {
     const page = await ctx.newPage();
     await page.goto(`${E2E_ENV.NEXT_PUBLIC_SITE_URL}/fr`);
     await page.screenshot({ path: `${SHOTS}/${info.project.name}-full.png`, fullPage: true });
-    await page.locator("#offers").scrollIntoViewIfNeeded();
-    await page.screenshot({ path: `${SHOTS}/${info.project.name}-offers.png` });
-    await page.locator("#details").getByRole("button", { name: /Agrandir/ }).first().click();
+    await page.locator("#compare").scrollIntoViewIfNeeded();
+    await page.screenshot({ path: `${SHOTS}/${info.project.name}-compare.png` });
+    await page.locator("#final-cta").scrollIntoViewIfNeeded();
+    await page.screenshot({ path: `${SHOTS}/${info.project.name}-final-cta.png` });
+    await page.getByRole("button", { name: /Agrandir l'image/ }).first().click();
     await expect(page.getByRole("dialog")).toBeVisible();
     await page.screenshot({ path: `${SHOTS}/${info.project.name}-lightbox.png` });
     await page.keyboard.press("Escape");
     await page.locator("#buy-box").getByRole("button", { name: "Ajouter au panier" }).click();
-    await expect(page.getByRole("dialog", { name: "Votre panier" })).toBeVisible();
+    await expect(page.getByRole("dialog", { name: /Votre panier/ })).toBeVisible();
     await page.screenshot({ path: `${SHOTS}/${info.project.name}-cart.png` });
     await page.goto(`${E2E_ENV.NEXT_PUBLIC_SITE_URL}/en`);
     await page.screenshot({ path: `${SHOTS}/${info.project.name}-en.png` });
     await ctx.close();
   });
 
-  test("variantes, quantités et lots mettent à jour le prix", async ({ page }) => {
+  test("variantes, quantités et remise de quantité mettent à jour le prix", async ({ page }) => {
     await page.goto("/fr");
     const box = page.locator("#buy-box");
-    await expect(box).toContainText("39,99");
+    await expect(box.getByTestId("price")).toHaveText(/39,99/);
     await box.getByText("Option 2 (à confirmer)").click();
-    await expect(page.locator("#hero-title").locator("..").locator("..").getByRole("img").first()).toHaveAttribute("alt", /deuxième variante/);
+    await expect(page.getByRole("button", { name: /Agrandir l'image — .*deuxième variante/ })).toBeVisible();
     await box.getByRole("button", { name: "Augmenter la quantité" }).click();
-    await expect(box).toContainText("71,98"); // 2 × 35,99
-    await expect(box).toContainText("Vous économisez 8,00");
-    await page.locator("#offers").getByRole("button", { name: /3 unités/ }).click();
-    await expect(box.getByRole("spinbutton")).toHaveValue("3");
-    await expect(page.locator("#offers")).toContainText("Économie de 21,00 $ (17 %)");
+    await expect(box.getByTestId("price")).toHaveText(/71,98/); // 2 × 35,99
+    await expect(box.locator("s")).toHaveText(/79,98/); // prix barré = 2 × prix unitaire réel
+    await expect(box).toContainText("-10 %");
+    await box.getByRole("button", { name: "Augmenter la quantité" }).click();
+    await expect(box.getByTestId("price")).toHaveText(/98,97/);
+    await expect(box).toContainText("-17 %");
   });
 
   test("panier latéral modifiable avec livraison et total avant paiement", async ({ page }) => {
     await page.goto("/fr");
     await page.locator("#buy-box").getByRole("button", { name: "Ajouter au panier" }).click();
-    const cart = page.getByRole("dialog", { name: "Votre panier" });
+    const cart = page.getByRole("dialog", { name: /Votre panier/ });
     await expect(cart).toBeVisible();
-    await expect(cart).toContainText("Livraison");
-    await expect(cart).toContainText("7,99");
-    await expect(cart).toContainText("47,98"); // 39,99 + 7,99
+    await expect(cart).toContainText("LivraisonGratuite");
+    await expect(cart).toContainText("Total39,99");
+    const gift = cart.getByTestId("gift-bar");
+    await expect(gift).toContainText("Plus que 30,01 $ pour recevoir");
     await cart.getByRole("button", { name: "Augmenter la quantité" }).click();
-    await expect(cart).toContainText("Plus que");
+    await expect(gift).toContainText("offert avec votre commande");
+    await expect(cart).toContainText("Total71,98");
     await cart.getByRole("button", { name: "Augmenter la quantité" }).click();
-    await expect(cart).toContainText("Livraison gratuite atteinte");
     await expect(cart).toContainText("98,97");
     await cart.getByRole("button", { name: /Retirer/ }).click();
     await expect(cart).toContainText("Votre panier est vide");
@@ -127,7 +139,7 @@ test.describe("boutique", () => {
       if (r.url().endsWith("/api/checkout")) apiCalls++;
     });
     await page.goto("/fr");
-    const btn = page.locator("#buy-box").getByRole("button", { name: /Commander maintenant/ });
+    const btn = page.locator("#buy-box").getByRole("button", { name: /Acheter maintenant/ });
     await btn.dblclick();
     await page.waitForURL(/checkout\.stripe\.com/);
     expect(stripeHits).toHaveLength(1);
@@ -147,7 +159,18 @@ test.describe("boutique", () => {
     await expect(status).toHaveAttribute("data-status", "paid", { timeout: 15_000 });
     await expect(status).toContainText("Paiement confirmé");
     // Panier vidé au retour.
-    expect(await page.evaluate(() => localStorage.getItem("borea-cart-v1"))).toBe("[]");
+    expect(await page.evaluate(() => JSON.parse(localStorage.getItem("borea-cart-v2") ?? "{}").state?.cart)).toEqual([]);
+
+    // Suivi de commande : numéro + courriel requis, pas d'énumération.
+    const orderNumber = (await page.locator("strong.font-mono").textContent())!.trim();
+    await page.goto("/fr/suivi-commande");
+    await page.getByLabel("Numéro de commande").fill(orderNumber);
+    await page.getByLabel("Courriel").fill("autre@example.com");
+    await page.getByRole("button", { name: "Suivre ma commande" }).click();
+    await expect(page.getByText(/Aucune commande ne correspond/)).toBeVisible();
+    await page.getByLabel("Courriel").fill("E2E@example.com");
+    await page.getByRole("button", { name: "Suivre ma commande" }).click();
+    await expect(page.getByTestId("tracking-result")).toContainText("Paiement confirmé");
   });
 
   test("session inventée → aucun faux succès", async ({ page }) => {
@@ -173,7 +196,7 @@ test.describe("boutique", () => {
     await page.goto("/fr/checkout/cancel");
     await expect(page.getByRole("heading", { name: "Paiement annulé" })).toBeVisible();
     await page.getByRole("button", { name: "Revenir au panier" }).click();
-    await expect(page.getByRole("dialog", { name: "Votre panier" })).toContainText("Option 1");
+    await expect(page.getByRole("dialog", { name: /Votre panier/ })).toContainText("Option 1");
   });
 
   test("anglais disponible et pages légales", async ({ page }) => {
@@ -183,7 +206,7 @@ test.describe("boutique", () => {
     await page.getByRole("link", { name: /Switch to English/ }).click();
     await expect(page).toHaveURL(/\/en\/shipping$/);
     await expect(page.locator("html")).toHaveAttribute("lang", "en-CA");
-    for (const p of ["/en/contact", "/en/returns", "/en/privacy", "/en/terms", "/fr/confidentialite", "/fr/conditions-de-vente", "/fr/retours", "/fr/contact"]) {
+    for (const p of ["/en/contact", "/en/returns", "/en/privacy", "/en/terms", "/fr/confidentialite", "/fr/cgv", "/fr/suivi-commande", "/en/order-tracking", "/fr/retours", "/fr/contact"]) {
       const res = await page.goto(p);
       expect(res?.status(), p).toBe(200);
     }
@@ -203,13 +226,16 @@ test.describe("barre d'achat mobile", () => {
   test("apparaît après le hero, disparaît sur le bloc final et le pied de page", async ({ page }, info) => {
     test.skip(info.project.name !== "mobile", "mobile uniquement");
     await page.goto("/fr");
-    const bar = page.getByRole("region", { name: "Commander maintenant" });
+    const bar = page.getByRole("region", { name: "Ajouter au panier" });
     await expect(bar).toHaveCount(0);
-    await page.locator("#details").scrollIntoViewIfNeeded();
+    await page.locator("#features").scrollIntoViewIfNeeded();
     await expect(bar).toBeVisible();
     await expect(bar).toContainText("39,99");
     await page.screenshot({ path: `${SHOTS}/mobile-sticky.png` });
-    await page.locator("#final-buy").scrollIntoViewIfNeeded();
+    await bar.getByRole("button", { name: "Ajouter au panier" }).click();
+    await expect(page.getByRole("dialog", { name: /Votre panier/ })).toBeVisible();
+    await page.keyboard.press("Escape");
+    await page.locator("#final-cta").scrollIntoViewIfNeeded();
     await expect(bar).toHaveCount(0);
     await page.locator("#site-footer").scrollIntoViewIfNeeded();
     await expect(bar).toHaveCount(0);
@@ -217,8 +243,8 @@ test.describe("barre d'achat mobile", () => {
   test("absente sur desktop", async ({ page }, info) => {
     test.skip(info.project.name !== "desktop", "desktop uniquement");
     await page.goto("/fr");
-    await page.locator("#details").scrollIntoViewIfNeeded();
-    await expect(page.getByRole("region", { name: "Commander maintenant" })).toHaveCount(0);
+    await page.locator("#features").scrollIntoViewIfNeeded();
+    await expect(page.getByRole("region", { name: "Ajouter au panier" })).toHaveCount(0);
   });
 });
 

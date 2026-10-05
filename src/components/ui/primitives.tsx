@@ -4,13 +4,15 @@ import Image from "next/image";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import type { Locale, MediaItem } from "@/config/types";
 
+/** Boutons néo-brutalistes : bordure 3px, ombre dure 6px, s'enfoncent au clic (.btn-press). */
 export const btn = {
   primary:
-    "inline-flex min-h-12 items-center justify-center gap-2 rounded-full bg-accent px-6 py-3 text-base font-semibold text-white shadow-[var(--shadow-cta)] transition hover:bg-accent-hover active:scale-[0.98] disabled:cursor-wait disabled:opacity-80",
+    "btn-press inline-flex min-h-14 items-center justify-center gap-2 border-[3px] border-ink bg-accent px-6 py-3 font-display text-sm font-bold uppercase tracking-wide text-ink hover:bg-accent-hover disabled:opacity-80 sm:text-base",
   secondary:
-    "inline-flex min-h-12 items-center justify-center gap-2 rounded-full border-2 border-ink bg-white px-6 py-3 text-base font-semibold text-ink transition hover:bg-ink hover:text-white active:scale-[0.98] disabled:opacity-60",
-  ghost:
-    "inline-flex min-h-11 items-center justify-center gap-2 rounded-full px-4 py-2 font-semibold text-ink underline-offset-4 transition hover:underline",
+    "btn-press inline-flex min-h-14 items-center justify-center gap-2 border-[3px] border-ink bg-ink px-6 py-3 font-display text-sm font-bold uppercase tracking-wide text-paper disabled:opacity-70 sm:text-base",
+  outline:
+    "btn-press inline-flex min-h-12 items-center justify-center gap-2 border-[3px] border-ink bg-white px-5 py-2.5 font-display text-sm font-bold uppercase tracking-wide text-ink",
+  ghost: "inline-flex min-h-11 items-center gap-2 px-1 py-2 font-semibold text-ink underline decoration-2 underline-offset-4 hover:decoration-accent",
 };
 
 export function Spinner() {
@@ -42,7 +44,10 @@ export function ProductImage({
       width={media.width}
       height={media.height}
       sizes={sizes}
-      priority={priority}
+      // Next 16 : `priority` est déprécié → préchargement + priorité réseau explicites pour l'image LCP.
+      preload={priority}
+      fetchPriority={priority ? "high" : undefined}
+      loading={priority ? "eager" : "lazy"}
       // Les SVG provisoires ne passent pas par l'optimiseur ; les photos réelles (jpg/png/webp) oui.
       unoptimized={media.src.endsWith(".svg")}
       className={className}
@@ -103,10 +108,10 @@ export function QuantityStepper({
   const h = size === "sm" ? "h-10" : "h-12";
   const w = size === "sm" ? "w-10" : "w-12";
   return (
-    <div className={`inline-flex ${h} items-stretch overflow-hidden rounded-full border border-line bg-white`}>
+    <div className={`inline-flex ${h} items-stretch border-[3px] border-ink bg-white`}>
       <button
         type="button"
-        className={`${w} text-xl font-semibold text-ink transition hover:bg-sand disabled:opacity-35`}
+        className={`${w} font-mono text-xl font-bold text-ink transition hover:bg-accent disabled:opacity-30 disabled:hover:bg-transparent`}
         onClick={() => onChange(value - 1)}
         disabled={value <= 1}
         aria-label={labels.decrease}
@@ -122,11 +127,11 @@ export function QuantityStepper({
         value={value}
         aria-label={labels.quantity}
         onChange={(e) => onChange(Number(e.target.value))}
-        className="w-12 border-x border-line bg-transparent text-center text-base font-semibold tabular-nums [appearance:textfield] focus:outline-none [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+        className="w-14 border-x-[3px] border-ink bg-transparent text-center font-mono text-lg font-bold tabular-nums [appearance:textfield] focus:outline-none [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
       />
       <button
         type="button"
-        className={`${w} text-xl font-semibold text-ink transition hover:bg-sand disabled:opacity-35`}
+        className={`${w} font-mono text-xl font-bold text-ink transition hover:bg-accent disabled:opacity-30 disabled:hover:bg-transparent`}
         onClick={() => onChange(value + 1)}
         disabled={value >= max}
         aria-label={labels.increase}
@@ -138,12 +143,12 @@ export function QuantityStepper({
 }
 
 export function Eyebrow({ children }: { children: ReactNode }) {
-  return <p className="mb-3 text-sm font-semibold uppercase tracking-[0.14em] text-pine">{children}</p>;
+  return <p className="mb-4 inline-block border-2 border-ink bg-white px-2 py-0.5 font-mono text-xs font-bold uppercase tracking-[0.14em]">{children}</p>;
 }
 
 export function SectionTitle({ children, id }: { children: ReactNode; id?: string }) {
   return (
-    <h2 id={id} className="font-display text-3xl font-bold leading-tight tracking-tight text-balance sm:text-4xl">
+    <h2 id={id} className="display-lg text-balance">
       {children}
     </h2>
   );

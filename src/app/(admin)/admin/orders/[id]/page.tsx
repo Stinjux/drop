@@ -105,6 +105,9 @@ export default async function OrderPage({ params }: PageProps<"/admin/orders/[id
                 <p>
                   <strong>Livraison fournisseur :</strong> {instr.shippingMethod}
                 </p>
+                {instr.gift && (
+                  <p className="border-[3px] border-ink bg-accent p-2 font-bold">Cadeau promis à inclure : {instr.gift}</p>
+                )}
                 <ul className="space-y-1">
                   {instr.lines.map((l) => (
                     <li key={l.sku}>

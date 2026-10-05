@@ -57,6 +57,10 @@ describe("POST /api/checkout", () => {
     expect(order?.paymentStatus).toBe("pending");
     expect(order?.subtotalCents).toBe(t2.unitPriceCents * 2);
     expect(order?.items[0]).toMatchObject({ variantId: A, quantity: 2, unitPriceCents: t2.unitPriceCents });
+    // Cadeau calculé côté serveur à partir du seuil configuré.
+    expect(order?.giftLabel).toBe(t2.unitPriceCents * 2 >= product.gift.thresholdCents ? product.gift.label.fr : null);
+    // Livraison gratuite.
+    expect(order?.shippingCents).toBe(0);
 
     const sent = mock.requests.find((r) => r.path === "/v1/checkout/sessions")!;
     expect(sent.body.get("mode")).toBe("payment");

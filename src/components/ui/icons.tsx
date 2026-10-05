@@ -7,9 +7,9 @@ const base = (p: P): P => ({
   viewBox: "0 0 24 24",
   fill: "none",
   stroke: "currentColor",
-  strokeWidth: 1.8,
-  strokeLinecap: "round",
-  strokeLinejoin: "round",
+  strokeWidth: 2.25,
+  strokeLinecap: "square",
+  strokeLinejoin: "miter",
   "aria-hidden": true,
   ...p,
 });
@@ -84,8 +84,8 @@ export const IconTrash = (p: P) => (
   </svg>
 );
 
-/** Icônes des bénéfices (clé définie dans src/config/product.ts). */
-export const BenefitIcons = {
+/** Icônes des caractéristiques (clé définie dans data/product.ts). */
+export const FeatureIcons = {
   spark: (p: P) => (
     <svg {...base(p)}>
       <path d="M12 3v4M12 17v4M3 12h4M17 12h4M6 6l2.5 2.5M15.5 15.5 18 18M18 6l-2.5 2.5M8.5 15.5 6 18" />
