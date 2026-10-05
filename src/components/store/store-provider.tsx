@@ -6,6 +6,8 @@ import type { Locale } from "@/config/types";
 import { dictionaries, fmt, type Dictionary } from "@/content";
 import { catalog } from "@/lib/catalog";
 import { selectedVariantId, useCartStore } from "./cart-store";
+import type { Prize } from "@/config/promo";
+import { applyPrize, findPrize, type PromoResult } from "@/lib/promo";
 import { getColor } from "@/config/product";
 import { normalizeCartLines, priceCart, type CartLineInput, type CartPricing } from "@/lib/pricing";
 
@@ -31,6 +33,10 @@ type StoreContextValue = {
   setQuantity: (q: number) => void;
   cart: CartLineInput[];
   cartPricing: CartPricing | null;
+  /** Code « Gratte & gagne » et son effet sur le panier (affichage ; le serveur recalcule). */
+  promo: { code: string; prize: Prize; expiresAt: string } | null;
+  promoResult: PromoResult | null;
+  setPromo: (promo: { code: string; prizeId: string; expiresAt: string } | null) => void;
   cartCount: number;
   addToCart: (line: CartLineInput) => void;
   setLineQuantity: (variantId: string, quantity: number) => void;
@@ -90,13 +96,14 @@ export function StoreProvider({ locale, taxesAtCheckout, children }: { locale: L
       }
       inflight.current = true;
       setCheckout({ status: "loading", source });
-      const fingerprint = JSON.stringify([...normalized.lines].sort((a, b) => a.variantId.localeCompare(b.variantId)));
+      const promoCode = useCartStore.getState().promo?.code ?? null;
+      const fingerprint = JSON.stringify([[...normalized.lines].sort((a, b) => a.variantId.localeCompare(b.variantId)), promoCode]);
       if (attempt.current?.fingerprint !== fingerprint) attempt.current = { fingerprint, key: uuid() };
       try {
         const res = await fetch("/api/checkout", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ items: normalized.lines, locale, attemptKey: attempt.current.key }),
+          body: JSON.stringify({ items: normalized.lines, locale, attemptKey: attempt.current.key, ...(promoCode ? { promoCode } : {}) }),
         });
         const data = (await res.json().catch(() => ({}))) as { url?: string; error?: string };
         if (res.ok && data.url) {
@@ -110,12 +117,17 @@ export function StoreProvider({ locale, taxesAtCheckout, children }: { locale: L
             ? t.errors.rate_limited
             : code === "payments_unavailable"
               ? t.errors.payments_unavailable
-              : code === "too_many"
+              : code === "promo_invalid"
+                ? t.scratch.promoInvalid
+                : code === "promo_needs_second_item"
+                  ? t.scratch.needsSecond
+                  : code === "too_many"
                 ? fmt(t.errors.too_many, { max: store.maxQuantityPerOrder })
                 : ["unknown_variant", "unavailable_variant", "invalid_quantity", "invalid_request", "empty"].includes(code)
                   ? t.errors.invalid
                   : t.errors.generic;
         if (message === t.errors.invalid) sanitize();
+        if (code === "promo_invalid") useCartStore.getState().setPromo(null);
         inflight.current = false;
         setCheckout({ status: "error", source, message });
       } catch {
@@ -130,6 +142,11 @@ export function StoreProvider({ locale, taxesAtCheckout, children }: { locale: L
     const n = normalizeCartLines(cart, catalog);
     return n.ok ? priceCart(n.lines, catalog) : null;
   }, [cart]);
+
+  const storedPromo = cartState.promo;
+  const promoPrize = storedPromo ? findPrize(storedPromo.prizeId) : undefined;
+  const promo = storedPromo && promoPrize ? { code: storedPromo.code, prize: promoPrize, expiresAt: storedPromo.expiresAt } : null;
+  const promoResult = promo && cartPricing ? applyPrize(cartPricing, promo.prize) : null;
 
   const value: StoreContextValue = {
     locale,
@@ -149,6 +166,9 @@ export function StoreProvider({ locale, taxesAtCheckout, children }: { locale: L
     cart,
     cartPricing,
     cartCount: cart.reduce((s, l) => s + l.quantity, 0),
+    promo,
+    promoResult,
+    setPromo: cartState.setPromo,
     addToCart: cartState.addToCart,
     setLineQuantity: cartState.setLineQuantity,
     removeLine: cartState.removeLine,

@@ -3,6 +3,7 @@ import type { Metadata, Viewport } from "next";
 import { notFound } from "next/navigation";
 import { preload } from "react-dom";
 import { CartDrawer } from "@/components/store/cart-drawer";
+import { ScratchGame } from "@/components/ScratchGame";
 import { StoreProvider } from "@/components/store/store-provider";
 import { AnnouncementBar } from "@/components/layout/announcement-bar";
 import { Footer } from "@/components/layout/footer";
@@ -66,6 +67,7 @@ export default async function ShopLayout({ children, params }: LayoutProps<"/[lo
             <main id="main">{children}</main>
             <Footer locale={locale} />
             <CartDrawer />
+            <ScratchGame />
           </StoreProvider>
         </MotionProvider>
       </body>

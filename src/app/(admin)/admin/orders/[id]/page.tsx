@@ -83,6 +83,8 @@ export default async function OrderPage({ params }: PageProps<"/admin/orders/[id
               <dd className="text-right">{money(order.subtotalCents)}</dd>
               <dt>Remise de lot</dt>
               <dd className="text-right">{money(order.savingsCents)}</dd>
+              <dt>Rabais « Gratte & gagne »{order.promoCode ? ` (${order.promoCode})` : ""}</dt>
+              <dd className="text-right">{order.promoDiscountCents ? `−${money(order.promoDiscountCents)}` : "—"}</dd>
               <dt>Livraison</dt>
               <dd className="text-right">{money(order.shippingCents)}</dd>
               <dt>Taxes</dt>

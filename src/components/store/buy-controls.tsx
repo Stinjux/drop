@@ -10,6 +10,7 @@ import { IconCart, IconLock } from "../ui/icons";
 import { btn, QuantityStepper, Spinner } from "../ui/primitives";
 import { SizeGuide } from "../SizeGuide";
 import { CheckoutAlert } from "./checkout-alert";
+import { ScratchEntry } from "../ScratchGame";
 import { useStore } from "./store-provider";
 
 /** Prix de la sélection courante (variante + quantité), calculé avec le moteur partagé. */
@@ -401,6 +402,7 @@ export function BuyControls({
         />
       </div>
       <CheckoutAlert source={source} />
+      <ScratchEntry />
       <p className="font-mono text-xs font-bold uppercase tracking-wide">
         {t.buy.shippingFree} · {fmt(t.buy.delivery, est)}
       </p>

@@ -37,6 +37,9 @@ type CartState = {
   sizeMissing: boolean;
   quantity: number;
   cart: CartLineInput[];
+  /** Code « Gratte & gagne » obtenu (le lot réel est revérifié par le serveur au paiement). */
+  promo: { code: string; prizeId: string; expiresAt: string } | null;
+  setPromo: (promo: { code: string; prizeId: string; expiresAt: string } | null) => void;
   drawerOpen: boolean;
   setColorId: (id: string) => void;
   setSize: (size: string) => void;
@@ -64,6 +67,8 @@ export const useCartStore = create<CartState>()(
       sizeMissing: false,
       quantity: 1,
       cart: [],
+      promo: null,
+      setPromo: (promo) => set({ promo }),
       drawerOpen: false,
       setColorId: (id) => {
         if (product.colors.some((c) => c.id === id)) set({ colorId: id });
@@ -105,8 +110,12 @@ export const useCartStore = create<CartState>()(
       name: CART_STORAGE_KEY,
       version: 1,
       storage: createJSONStorage(() => localStorage),
-      partialize: (s) => ({ cart: s.cart }),
-      merge: (persisted, current) => ({ ...current, cart: sanitizeCart((persisted as { cart?: unknown } | undefined)?.cart) }),
+      partialize: (s) => ({ cart: s.cart, promo: s.promo }),
+      merge: (persisted, current) => {
+        const p = persisted as { cart?: unknown; promo?: CartState["promo"] } | undefined;
+        const promo = p?.promo && typeof p.promo.code === "string" && new Date(p.promo.expiresAt).getTime() > Date.now() ? p.promo : null;
+        return { ...current, cart: sanitizeCart(p?.cart), promo };
+      },
       // Réhydratation explicite après le montage (évite les écarts de rendu serveur/client).
       skipHydration: true,
     },

@@ -1,4 +1,4 @@
-// Faux serveur d'API Stripe pour les tests e2e (sessions Checkout uniquement).
+// Faux serveur d'API Stripe pour les tests e2e (sessions Checkout et coupons).
 import { createServer } from "node:http";
 import { randomBytes } from "node:crypto";
 
@@ -20,6 +20,14 @@ createServer((req, res) => {
       const body = new URLSearchParams(data);
       const id = `cs_test_${randomBytes(12).toString("hex")}`;
       const json = JSON.stringify({ id, object: "checkout.session", url: `https://checkout.stripe.com/c/pay/${id}`, expires_at: Number(body.get("expires_at")), livemode: false, metadata: { order_id: body.get("metadata[order_id]") } });
+      if (key) byKey.set(key, json);
+      return res.writeHead(200, { "content-type": "application/json" }).end(json);
+    }
+    if (req.method === "POST" && req.url === "/v1/coupons") {
+      const key = req.headers["idempotency-key"];
+      if (key && byKey.has(key)) return res.writeHead(200, { "content-type": "application/json" }).end(byKey.get(key));
+      const body = new URLSearchParams(data);
+      const json = JSON.stringify({ id: `coupon_${randomBytes(8).toString("hex")}`, object: "coupon", amount_off: Number(body.get("amount_off")), currency: body.get("currency") });
       if (key) byKey.set(key, json);
       return res.writeHead(200, { "content-type": "application/json" }).end(json);
     }

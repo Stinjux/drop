@@ -121,3 +121,25 @@ export const FeatureIcons = {
     </svg>
   ),
 };
+
+/** Patte de chien (pictogramme plein). */
+export const IconPaw = (p: P) => (
+  <svg width={24} height={24} viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" {...p}>
+    <ellipse cx="12" cy="16" rx="5" ry="4.2" />
+    <ellipse cx="5.6" cy="10.6" rx="2.1" ry="2.6" />
+    <ellipse cx="9.4" cy="6.6" rx="2.2" ry="2.7" />
+    <ellipse cx="14.6" cy="6.6" rx="2.2" ry="2.7" />
+    <ellipse cx="18.4" cy="10.6" rx="2.1" ry="2.6" />
+  </svg>
+);
+
+/** Os (pictogramme plein). */
+export const IconBone = (p: P) => (
+  <svg width={24} height={24} viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" {...p}>
+    <rect x="6" y="10" width="12" height="4" />
+    <circle cx="5.5" cy="9.5" r="2.5" />
+    <circle cx="5.5" cy="14.5" r="2.5" />
+    <circle cx="18.5" cy="9.5" r="2.5" />
+    <circle cx="18.5" cy="14.5" r="2.5" />
+  </svg>
+);

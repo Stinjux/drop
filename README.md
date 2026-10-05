@@ -100,6 +100,7 @@ Toute l'information modifiable est centralisée :
 | --- | --- |
 | `src/config/store.ts` | Marque, contact, identité légale, livraison (tarifs, seuil gratuit, délais), retours, quantité max., durée de session |
 | **`data/product.ts`** | **Fichier unique du produit** : nom, titre, problème résolu, variantes, prix et paliers, prix barré justifié, cadeau, médias, avant/après, caractéristiques, étapes, comparatif, FAQ, avis |
+| `src/config/promo.ts` | Jeu « Gratte & gagne » : lots, poids (chances), validité, délai d'ouverture automatique, activation |
 | `src/content/fr.ts`, `en.ts` | Textes de l'interface |
 | `src/server/supplier-config.ts` | **Interne** : URL fournisseur, coût, correspondance des variantes (jamais envoyé au navigateur) |
 | `src/app/globals.css` (`@theme`) | Couleurs, polices, ombres |
@@ -137,7 +138,8 @@ Dans *Paramètres > Moyens de paiement*, activez les moyens voulus. Le code ne f
 Dans *Paramètres > Image de marque*, ajoutez le logo et les couleurs, qui s'affichent sur la page Checkout.
 
 ### 4.2 Clé restreinte
-*Développeurs > Clés API > Créer une clé restreinte* avec **Checkout Sessions : Écriture**. Les prix
+*Développeurs > Clés API > Créer une clé restreinte* avec **Checkout Sessions : Écriture** et
+**Coupons : Écriture** (rabais du jeu à gratter). Les prix
 sont envoyés en `price_data`, il n'y a donc aucun produit à créer dans Stripe. Si Stripe répond par une erreur de permission,
 le message nomme la permission manquante : ajoutez-la à la clé. Placez la clé dans `STRIPE_SECRET_KEY`
 via les secrets de l'environnement, jamais dans le code ni dans une conversation.
@@ -190,7 +192,43 @@ code fiscal produit), puis passez `STRIPE_TAX_ENABLED=true`. Le code active alor
    ACSS, avec les comptes de test Stripe), ou bien `stripe trigger checkout.session.async_payment_succeeded`.
 7. **Webhooks répétés** : *Dashboard > Webhooks > événement > Renvoyer*. Le résultat est `duplicate` et rien ne change.
 
-## 5. Traitement fournisseur (manuel)
+## 5. Jeu « Gratte & gagne »
+
+Carte à gratter en fenêtre surgissante (motif os et pattes de chien), ouverte automatiquement **une fois**
+après 12 s sur l'accueil, puis accessible par l'onglet flottant (desktop) et le bouton du bloc d'achat (mobile).
+Le visiteur gratte au doigt ou à la souris (ou « Révéler sans gratter »), obtient un code `WOOF-XXXXXXXX`
+valable 14 jours et l'applique au panier.
+
+| Lot | Poids | Chances |
+| --- | --- | --- |
+| -5 % | 4000 | 40 % |
+| -10 % | 3500 | 35 % |
+| -15 % | 2000 | 20 % |
+| -20 % | 450 | 4,5 % |
+| 1 acheté = 1 offert | 50 | **1 sur 200** (0,5 %) |
+
+Modifiez les poids dans `src/config/promo.ts` (le total fait 10 000 ; les chances affichées et le règlement se mettent à jour).
+`scratchGame.enabled = false` désactive tout le jeu.
+
+**Sécurité.**
+- Le tirage se fait **sur le serveur** (`/api/scratch`, aléa cryptographique). Le navigateur ne choisit jamais le lot.
+- Un ticket par navigateur (cookie httpOnly : regratter redonne le même résultat), 10 tickets max. par IP et par jour.
+- Au paiement, le serveur revalide le code (existant, non expiré, non utilisé) et recalcule le rabais :
+  pourcentage du sous-total, ou une unité offerte (au prix du palier) dès 2 doudounes.
+- Le rabais passe par un **coupon Stripe** à montant fixe et à usage unique, créé pour la commande.
+- Le code n'est marqué « utilisé » qu'au **paiement confirmé** (webhook). Un second paiement avec le même code,
+  ou un rabais Stripe différent du calcul serveur, met la commande « à vérifier ».
+
+**Marge.** Le rabais est **cumulable** avec le rabais de quantité (`stacksWithQuantityDiscount`).
+Le pire cas courant est -25 % (4+ unités) puis -20 % du sous-total. Avec 1 acheté = 1 offert sur 2 unités,
+le client paie l'équivalent de 46,74 $ pour 2 doudounes. Vérifiez que votre coût fournisseur le permet.
+
+**Légal (Québec / Canada).** Le règlement est publié sur `/fr/reglement-jeu` (`/en/game-rules`), avec aucun achat requis,
+les lots et les chances. La Loi sur la concurrence exige de divulguer les chances. Selon la valeur des lots, un concours
+publicitaire au Québec peut devoir être **déclaré à la Régie des alcools, des courses et des jeux (RACJ)** et soumis à des droits.
+Faites valider ce point avant le lancement ; il figure dans la liste de `/admin`.
+
+## 6. Traitement fournisseur (manuel)
 
 Stripe encaisse ; l'achat chez le fournisseur est **un processus distinct**. Aucune commande AliExpress
 n'est simulée ni automatisée.
@@ -207,46 +245,46 @@ n'est simulée ni automatisée.
 Le module est isolé dans `src/server/fulfillment/` (interface `FulfillmentProvider`). Une future
 intégration officielle (API fournisseur autorisée) implémentera `submitOrder` sans toucher au reste.
 
-## 6. Courriels
+## 7. Courriels
 
 Confirmation (après paiement confirmé) et expédition (après saisie du suivi), en FR ou EN selon la langue
 de la commande (`src/server/email/`). Ils passent par l'API HTTP de **Resend** : vérifiez votre domaine d'envoi chez Resend.
 **Sans `RESEND_API_KEY` et `EMAIL_FROM`, aucun courriel n'est envoyé.** La commande affiche alors
 « Non envoyé : service d'envoi non configuré », et un bouton « Renvoyer » permet de relancer une fois le service configuré.
 
-## 7. Administration
+## 8. Administration
 
 `/admin` est protégé par un mot de passe (`ADMIN_PASSWORD`), avec un cookie de session signé HMAC
 (httpOnly, SameSite=strict, Secure en production, 8 h). Les tentatives de connexion sont limitées à 5 par 15 min.
 Chaque page, action serveur et export revérifie la session, et `/admin` n'est pas indexé.
 
-## 8. Tests réalisés
+## 9. Tests réalisés
 
-- `npm test` (69 tests) : prix, lots et paliers ; validation du panier ; **montants manipulés** (prix ou
+- `npm test` (86 tests) : prix, lots et paliers ; validation du panier ; **montants manipulés** (prix ou
   montant injecté, quantités 0, négatives, décimales, en texte, excessives, variante inconnue) ; CSRF ;
   limitation de débit ; double clic ; garde-fou des clés live ; paramètres Stripe ; validation des paramètres
   par **stripe-mock** (test ignoré si stripe-mock n'est pas lancé) ; webhooks : signature absente ou invalide,
   corps modifié, paiement confirmé, **événements répétés et simultanés**, paiements différés réussis ou échoués,
-  désordre, expiration, anomalie de montant, courriel envoyé une seule fois ; jeton admin, proxy, CSV.
-- `npm run test:e2e` (28 tests, Pixel 7 et Chrome desktop) : rendu, ordre des sections, absence de débordement horizontal,
+  désordre, expiration, anomalie de montant, courriel envoyé une seule fois ; jeton admin, proxy, CSV ; **jeu à gratter** : distribution exacte des lots (1 sur 200), tickets par cookie et par IP, coupon Stripe, code invalide ou expiré, 1 acheté = 1 offert, consommation au paiement confirmé et réutilisation signalée.
+- `npm run test:e2e` (32 tests, Pixel 7 et Chrome desktop) : rendu, ordre des sections, absence de débordement horizontal,
   absence de note, de prix barré ou de « stock limité » non justifiés, coloris et taille obligatoire, guide des tailles (tiroir, sélection partagée avec le hero, cm/pouces mémorisés, clavier ↑/↓, Échap, FAQ), quantités, panier latéral et barre cadeau, suivi de commande, achat immédiat (un seul appel malgré le double clic),
   redirection Stripe (page Stripe simulée), succès confirmé par webhook signé, faux `session_id`, paiement
   différé puis échec, annulation, langue anglaise, pages légales, animations réduites, barre d'achat mobile
-  (masquée sur les blocs d'achat et le pied de page), protection de l'admin, traitement d'une commande et export CSV.
+  (masquée sur les blocs d'achat et le pied de page), protection de l'admin, traitement d'une commande et export CSV, jeu à gratter (grattage réel à la souris, code appliqué au panier puis transmis au paiement, ouverture automatique unique).
 - **Lighthouse** (build de production, page `/fr`) : mobile **Performance 90 à 93** avec les vraies photos, Accessibilité 100, Bonnes pratiques 100 ;
   desktop 100 / 100 / 100. Le SEO affiche 69 pour une **seule** raison : l'indexation est volontairement bloquée tant que
   `product.confirmed` vaut `false`. Tous les autres contrôles SEO passent.
 - **Non réalisé ici** : un paiement réel sur la page Stripe hébergée, faute de clés de test dans l'environnement.
   Suivez le §4.6.
 
-## 9. Déploiement
+## 10. Déploiement
 
 Sur Vercel (ou équivalent Node) : définissez les variables du §2 dans les secrets du projet et utilisez
 une base **libSQL distante** (ex. Turso : `DATABASE_URL=libsql://…`, `DATABASE_AUTH_TOKEN=…`), car le disque
 d'une fonction serverless n'est pas persistant. Configurez ensuite l'endpoint webhook de production (§4.3).
 Sur un serveur classique (VPS), le fichier SQLite suffit : sauvegardez `data/`.
 
-## 10. Avant d'accepter de vraies commandes
+## 11. Avant d'accepter de vraies commandes
 
 Voir la liste dans `/admin` : fiche produit vérifiée, vrais médias et droits, vrais avis (ou aucun), cadeau réel (ou désactivé), prix et coût fournisseur habituel,
 délais et tarifs de livraison réels, politique de retour, contact et identité légale, taxes, Resend,

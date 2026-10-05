@@ -1,4 +1,4 @@
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test, type BrowserContext, type Page } from "@playwright/test";
 import Stripe from "stripe";
 import { E2E_ENV } from "../../playwright.config";
 
@@ -22,6 +22,17 @@ async function sendWebhook(page: Page, type: string, session: Record<string, unk
   expect(res.status()).toBe(200);
   return res.json();
 }
+
+/** Reporte l'ouverture automatique du jeu à gratter (testé séparément). */
+async function snoozeScratch(ctx: BrowserContext) {
+  await ctx.addInitScript(() => {
+    if (!localStorage.getItem("borea-scratch")) localStorage.setItem("borea-scratch", JSON.stringify({ snoozedAt: new Date().toISOString() }));
+  });
+}
+
+test.beforeEach(async ({ context }, info) => {
+  if (!info.title.startsWith("jeu à gratter")) await snoozeScratch(context);
+});
 
 /** Choisit une taille dans le sélecteur du hero (obligatoire avant l'achat). */
 async function pickSize(page: Page, size = "M") {
@@ -85,6 +96,7 @@ test.describe("boutique", () => {
   test("captures d'aperçu (page complète, panier, galerie)", async ({ browser }, info) => {
     // Animations réduites : toutes les sections sont visibles sur la capture pleine page.
     const ctx = await browser.newContext({ ...info.project.use, reducedMotion: "reduce" });
+    await snoozeScratch(ctx);
     const page = await ctx.newPage();
     await page.goto(`${E2E_ENV.NEXT_PUBLIC_SITE_URL}/fr`);
     await page.screenshot({ path: `${SHOTS}/${info.project.name}-full.png`, fullPage: true });
@@ -284,7 +296,7 @@ test.describe("boutique", () => {
     await page.getByRole("link", { name: /Switch to English/ }).click();
     await expect(page).toHaveURL(/\/en\/shipping$/);
     await expect(page.locator("html")).toHaveAttribute("lang", "en-CA");
-    for (const p of ["/en/contact", "/en/returns", "/en/privacy", "/en/terms", "/fr/confidentialite", "/fr/cgv", "/fr/suivi-commande", "/en/order-tracking", "/fr/retours", "/fr/contact"]) {
+    for (const p of ["/en/contact", "/en/returns", "/en/privacy", "/en/terms", "/fr/confidentialite", "/fr/cgv", "/fr/suivi-commande", "/en/order-tracking", "/fr/retours", "/fr/contact", "/fr/reglement-jeu", "/en/game-rules"]) {
       const res = await page.goto(p);
       expect(res?.status(), p).toBe(200);
     }
@@ -292,11 +304,83 @@ test.describe("boutique", () => {
 
   test("animations réduites : aucun contenu masqué", async ({ browser }) => {
     const ctx = await browser.newContext({ reducedMotion: "reduce" });
+    await snoozeScratch(ctx);
     const page = await ctx.newPage();
     await page.goto(E2E_ENV.NEXT_PUBLIC_SITE_URL + "/fr");
     await page.mouse.wheel(0, 3000);
     expect(await page.locator(".reveal-pending").count()).toBe(0);
     await ctx.close();
+  });
+});
+
+test.describe("jeu à gratter", () => {
+  test("jeu à gratter : grattage, code appliqué au panier, chances affichées", async ({ page }, info) => {
+    await page.goto("/fr");
+    await page.getByTestId("scratch-entry").click();
+    const dialog = page.getByRole("dialog", { name: "Gratte & gagne" });
+    await expect(dialog).toBeVisible();
+    await expect(dialog.getByTestId("scratch-odds")).toContainText("1 acheté = 1 offert : 1 sur 200 (0,5 %)");
+    await expect(dialog.getByRole("link", { name: "Règlement du jeu" })).toHaveAttribute("href", "/fr/reglement-jeu");
+    await expect(dialog.getByRole("button", { name: "Révéler sans gratter" })).toBeVisible();
+    await page.screenshot({ path: `${SHOTS}/${info.project.name}-scratch-cover.png` });
+
+    // Grattage réel à la souris : balayage en zigzag jusqu'au seuil de révélation.
+    const canvas = dialog.getByTestId("scratch-canvas");
+    const box = (await canvas.boundingBox())!;
+    await page.mouse.move(box.x + 4, box.y + 4);
+    await page.mouse.down();
+    for (let row = 0; row <= 10; row++) {
+      const y = box.y + (box.height * row) / 10;
+      await page.mouse.move(box.x + (row % 2 ? 4 : box.width - 4), y, { steps: 12 });
+    }
+    await page.mouse.up();
+    const result = dialog.getByTestId("scratch-result");
+    await expect(result).toBeVisible();
+    await expect(canvas).toBeHidden();
+    const code = (await result.locator("strong").textContent())!;
+    expect(code).toMatch(/^WOOF-[2-9A-HJKMNP-Z]{8}$/);
+    await page.screenshot({ path: `${SHOTS}/${info.project.name}-scratch-result.png` });
+
+    await dialog.getByRole("button", { name: "Utiliser mon rabais" }).click();
+    await expect(dialog.getByRole("status")).toHaveText("Rabais appliqué au panier ✓");
+    await dialog.getByRole("button", { name: "Fermer ✕" }).first().click();
+    await expect(page.getByTestId("scratch-applied")).toContainText(code);
+
+    // Panier : ligne de rabais calculée, total ajusté, code retirable.
+    await pickSize(page);
+    await page.locator("#buy-box").getByRole("button", { name: "Ajouter au panier" }).click();
+    const cart = page.getByRole("dialog", { name: /Votre panier/ });
+    await cart.getByRole("button", { name: "Augmenter la quantité" }).click(); // 2 unités (BOGO applicable)
+    const promo = cart.getByTestId("cart-promo");
+    await expect(promo).toContainText(code);
+    await expect(promo).toContainText("−");
+    await page.screenshot({ path: `${SHOTS}/${info.project.name}-scratch-cart.png` });
+
+    // Le même navigateur retrouve le même ticket : pas de second tirage.
+    const again = await page.request.post("/api/scratch", { headers: { origin: E2E_ENV.NEXT_PUBLIC_SITE_URL }, data: {} });
+    expect((await again.json()).code).toBe(code);
+
+    // Le code est transmis au serveur au paiement.
+    const hits = await interceptStripe(page);
+    const req = page.waitForRequest((r) => r.url().endsWith("/api/checkout"));
+    await cart.getByRole("button", { name: "Passer au paiement" }).click();
+    expect((await req).postDataJSON().promoCode).toBe(code);
+    await page.waitForURL(/checkout\.stripe\.com/);
+    expect(hits).toHaveLength(1);
+  });
+
+  test("jeu à gratter : s'ouvre seul une fois sur l'accueil, puis reste fermé", async ({ page }) => {
+    await page.clock.install();
+    await page.goto("/fr");
+    const dialog = page.getByRole("dialog", { name: "Gratte & gagne" });
+    await expect(dialog).toBeHidden();
+    await page.clock.runFor(13_000);
+    await expect(dialog).toBeVisible();
+    await dialog.getByRole("button", { name: "Fermer ✕" }).click();
+    await expect(dialog).toBeHidden();
+    await page.reload();
+    await page.clock.runFor(13_000);
+    await expect(dialog).toBeHidden();
   });
 });
 

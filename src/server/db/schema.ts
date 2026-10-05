@@ -104,4 +104,22 @@ export const migrations: Array<{ version: number; statements: string[] }> = [
     version: 2,
     statements: [`ALTER TABLE orders ADD COLUMN gift_label TEXT`],
   },
+  {
+    version: 3,
+    statements: [
+      `CREATE TABLE IF NOT EXISTS scratch_tickets (
+        code TEXT PRIMARY KEY,
+        prize_id TEXT NOT NULL,
+        created_at TEXT NOT NULL,
+        expires_at TEXT NOT NULL,
+        ip_hash TEXT NOT NULL,
+        redeemed_order_id TEXT,
+        redeemed_at TEXT
+      )`,
+      `CREATE INDEX IF NOT EXISTS idx_scratch_ip ON scratch_tickets(ip_hash, created_at)`,
+      `ALTER TABLE orders ADD COLUMN promo_code TEXT`,
+      `ALTER TABLE orders ADD COLUMN promo_discount_cents INTEGER NOT NULL DEFAULT 0`,
+      `ALTER TABLE orders ADD COLUMN stripe_coupon_id TEXT`,
+    ],
+  },
 ];

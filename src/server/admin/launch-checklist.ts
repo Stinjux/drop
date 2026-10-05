@@ -31,6 +31,13 @@ export function launchChecklist(): ChecklistItem[] {
       detail:
         "Risque de contrefaçon / atteinte à une marque : Stripe interdit la vente de produits portant atteinte à une marque. Obtenir un avis juridique ou choisir un modèle sans ce logo, puis retirer ce point.",
     },
+    {
+      label: "Jeu « Gratte & gagne » conforme (concours publicitaire)",
+      ok: false,
+      blocking: true,
+      detail:
+        "Chances affichées (Loi sur la concurrence) ✓. À vérifier : déclaration à la Régie des alcools, des courses et des jeux (Québec) selon la valeur des lots, règlement complet, marge avec rabais cumulés. Désactivable : src/config/promo.ts → enabled.",
+    },
     { label: "Visuels réels et droits d'utilisation", ok: provisionalMedia.length === 0, blocking: true, detail: provisionalMedia.length ? `${provisionalMedia.length} visuel(s) provisoire(s)` : undefined },
     {
       label: "Cadeau du panier défini et disponible",

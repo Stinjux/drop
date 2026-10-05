@@ -14,7 +14,7 @@ export function toCsv(orders: OrderWithItems[]): string {
     "numero_commande", "date", "statut_paiement", "statut_traitement", "langue",
     "client_nom", "client_courriel", "client_telephone",
     "livraison_nom", "adresse_1", "adresse_2", "ville", "province", "code_postal", "pays",
-    "articles", "cadeau", "quantite_totale", "sous_total", "livraison", "taxes", "total_paye", "devise",
+    "articles", "cadeau", "quantite_totale", "sous_total", "code_grattage", "rabais_grattage", "livraison", "taxes", "total_paye", "devise",
     "stripe_session", "stripe_payment_intent", "mode_stripe",
     "commande_fournisseur", "cout_fournisseur", "transporteur", "numero_suivi", "lien_suivi", "expediee_le",
   ];
@@ -25,7 +25,7 @@ export function toCsv(orders: OrderWithItems[]): string {
     o.items.map((i) => `${i.quantity}x ${i.sku} (${i.variantLabel})`).join(" | "),
     o.giftLabel,
     o.items.reduce((s, i) => s + i.quantity, 0),
-    cents(o.subtotalCents), cents(o.shippingCents), cents(o.taxCents), cents(o.amountPaidCents), o.currency,
+    cents(o.subtotalCents), o.promoCode, cents(o.promoDiscountCents), cents(o.shippingCents), cents(o.taxCents), cents(o.amountPaidCents), o.currency,
     o.stripeCheckoutSessionId, o.stripePaymentIntentId, o.stripeLivemode === null ? "" : o.stripeLivemode ? "live" : "test",
     o.supplierOrderId, cents(o.supplierCostCents), o.carrier, o.trackingNumber, o.trackingUrl, o.shippedAt,
   ]);

@@ -42,6 +42,18 @@ export async function startMockStripe(): Promise<{ url: string; requests: Record
       res.end(json);
       return;
     }
+    if (req.method === "POST" && req.url === "/v1/coupons") {
+      if (idempotencyKey && byKey.has(idempotencyKey)) {
+        res.writeHead(200, { "content-type": "application/json", "idempotent-replayed": "true" });
+        res.end(byKey.get(idempotencyKey));
+        return;
+      }
+      const json = JSON.stringify({ id: `coupon_${randomBytes(8).toString("hex")}`, object: "coupon", amount_off: Number(body.get("amount_off")), currency: body.get("currency"), duration: body.get("duration") });
+      if (idempotencyKey) byKey.set(idempotencyKey, json);
+      res.writeHead(200, { "content-type": "application/json" });
+      res.end(json);
+      return;
+    }
     res.writeHead(404, { "content-type": "application/json" });
     res.end(JSON.stringify({ error: { message: "not mocked" } }));
   });

@@ -5,6 +5,7 @@ import { fmt, getDictionary, infoHref, type InfoPageId } from "@/content";
 import { defaultShipping, deliveryEstimate } from "@/lib/catalog";
 import { formatMoney } from "@/lib/money";
 import { TrackingForm } from "./store/tracking-form";
+import { prizeLabel, prizeOdds, scratchGame } from "@/config/promo";
 
 /**
  * Pages d'information. Les champs vides de src/config/store.ts s'affichent en
@@ -34,6 +35,7 @@ export const INFO_TITLES: Record<InfoPageId, Record<Locale, string>> = {
   privacy: { fr: "Politique de confidentialité", en: "Privacy policy" },
   terms: { fr: "Conditions générales de vente", en: "Terms of sale" },
   tracking: { fr: "Suivi de commande", en: "Order tracking" },
+  game: { fr: "Règlement du jeu « Gratte & gagne »", en: "“Scratch & win” game rules" },
 };
 
 function Contact({ locale: l }: { locale: Locale }) {
@@ -199,6 +201,49 @@ function Terms({ locale: l }: { locale: Locale }) {
   );
 }
 
+function GameRules({ locale: l }: { locale: Locale }) {
+  const fr = l === "fr";
+  const g = scratchGame;
+  const prizes = [...g.prizes].sort((a, b) => b.weight - a.weight);
+  return (
+    <>
+      <P><Todo locale={l}>{fr ? "faire valider ce règlement et vérifier l'obligation de déclaration à la Régie des alcools, des courses et des jeux (Québec)" : "have these rules reviewed and check the Québec RACJ declaration requirement"}</Todo></P>
+      <H2>{fr ? "Organisateur" : "Organizer"}</H2>
+      <P>
+        <Val locale={l} value={store.legal.businessName} label={fr ? "raison sociale" : "legal business name"} /> — <Val locale={l} value={store.legal.businessAddress} label={fr ? "adresse" : "address"} />
+      </P>
+      <H2>{fr ? "Période et admissibilité" : "Period and eligibility"}</H2>
+      <P>
+        <Todo locale={l}>{fr ? "dates de début et de fin du jeu" : "game start and end dates"}</Todo>{" "}
+        {fr ? "Ouvert aux résidents du Canada ayant atteint l'âge de la majorité dans leur province." : "Open to residents of Canada who have reached the age of majority in their province."}
+      </P>
+      <H2>{fr ? "Comment jouer" : "How to play"}</H2>
+      <UL>
+        <li>{fr ? "Aucun achat requis pour jouer. Grattez la carte sur le site (ou utilisez « Révéler sans gratter »)." : "No purchase necessary to play. Scratch the card on the site (or use “Reveal without scratching”)."}</li>
+        <li>{fr ? "Un ticket par personne et par navigateur ; le résultat est tiré au hasard par notre serveur au moment où le ticket est attribué." : "One ticket per person and browser; the result is drawn at random by our server when the ticket is issued."}</li>
+      </UL>
+      <H2>{fr ? "Lots et chances de gagner" : "Prizes and odds"}</H2>
+      <P>{fr ? "Chaque ticket est gagnant. Chances par ticket :" : "Every ticket wins. Odds per ticket:"}</P>
+      <UL>
+        {prizes.map((p) => (
+          <li key={p.id}>
+            <strong>{prizeLabel(p, l)}</strong> : {prizeOdds(p, l)}
+          </li>
+        ))}
+      </UL>
+      <H2>{fr ? "Utilisation du code" : "Using the code"}</H2>
+      <UL>
+        <li>{fr ? `Valable ${g.validityDays} jours après l'attribution, pour une seule commande payée.` : `Valid for ${g.validityDays} days after it is issued, for a single paid order.`}</li>
+        <li>{fr ? "Les rabais en pourcentage s'appliquent au sous-total, après le rabais de quantité (cumulables)." : "Percentage discounts apply to the subtotal, after the quantity discount (they stack)."}</li>
+        <li>{fr ? "« 1 acheté = 1 offert » : avec au moins 2 doudounes au panier, une unité est offerte (au prix unitaire du palier), une fois par commande." : "“Buy 1, get 1 free”: with at least 2 jackets in the cart, one unit is free (at the tier unit price), once per order."}</li>
+        <li>{fr ? "Non monnayable, non transférable, non remboursable en argent." : "No cash value, non-transferable, not redeemable for cash."}</li>
+      </UL>
+      <H2>{fr ? "Renseignements personnels" : "Personal information"}</H2>
+      <P>{fr ? "Pour limiter les abus, nous conservons le code, le lot, la date et une empreinte non réversible de l'adresse IP. Voir la politique de confidentialité." : "To limit abuse, we store the code, prize, date and a non-reversible fingerprint of the IP address. See the privacy policy."}</P>
+    </>
+  );
+}
+
 export function InfoPageContent({ id, locale }: { id: InfoPageId; locale: Locale }) {
   switch (id) {
     case "contact":
@@ -213,5 +258,7 @@ export function InfoPageContent({ id, locale }: { id: InfoPageId; locale: Locale
       return <Terms locale={locale} />;
     case "tracking":
       return <TrackingForm />;
+    case "game":
+      return <GameRules locale={locale} />;
   }
 }

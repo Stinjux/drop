@@ -119,6 +119,25 @@ async function applyEvent(eventId: string, type: HandledEvent, session: Stripe.C
       needsReview = true;
       notes.push(`ANOMALIE : devise ${session.currency} ≠ ${order.currency}.`);
     }
+    // Rabais « Gratte & gagne » : le rabais appliqué par Stripe doit être celui calculé par le serveur.
+    const stripeDiscount = session.total_details?.amount_discount ?? 0;
+    if (session.total_details && stripeDiscount !== order.promoDiscountCents) {
+      needsReview = true;
+      notes.push(`ANOMALIE : rabais Stripe ${stripeDiscount} ≠ rabais attendu ${order.promoDiscountCents}.`);
+    }
+    // Le code n'est « consommé » qu'au paiement confirmé ; un second usage payé est signalé.
+    if (order.promoCode && to === "paid" && from !== "paid") {
+      const redeemed = await tx.execute({
+        sql: "UPDATE scratch_tickets SET redeemed_order_id = ?, redeemed_at = ? WHERE code = ? AND (redeemed_order_id IS NULL OR redeemed_order_id = ?)",
+        args: [order.id, now, order.promoCode, order.id],
+      });
+      if (redeemed.rowsAffected === 0) {
+        needsReview = true;
+        notes.push(`ANOMALIE : code ${order.promoCode} déjà utilisé par une autre commande payée.`);
+      } else {
+        notes.push(`Code ${order.promoCode} utilisé (rabais ${order.promoDiscountCents} ¢).`);
+      }
+    }
     if (target === null) {
       needsReview = true;
       notes.push(`Statut de paiement inattendu : ${session.payment_status}.`);

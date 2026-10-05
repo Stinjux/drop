@@ -49,6 +49,9 @@ export function mapOrder(r: Row): Order {
     amountPaidCents: num(r.amount_paid_cents),
     shippingOptionId: String(r.shipping_option_id),
     giftLabel: str(r.gift_label),
+    promoCode: str(r.promo_code),
+    promoDiscountCents: Number(r.promo_discount_cents ?? 0),
+    stripeCouponId: str(r.stripe_coupon_id),
     customerEmail: str(r.customer_email),
     customerName: str(r.customer_name),
     customerPhone: str(r.customer_phone),
@@ -108,6 +111,8 @@ export type NewOrderInput = {
   totalCents: number;
   shippingOptionId: string;
   giftLabel?: string | null;
+  promoCode?: string | null;
+  promoDiscountCents?: number;
   items: Array<Omit<OrderItem, "id">>;
 };
 
@@ -120,8 +125,8 @@ export async function createPendingOrder(input: NewOrderInput): Promise<OrderWit
     const statements: InStatement[] = [
       {
         sql: `INSERT INTO orders (id, order_number, created_at, updated_at, locale, checkout_attempt_key, cart_fingerprint,
-                payment_status, currency, subtotal_cents, savings_cents, shipping_cents, total_cents, shipping_option_id, gift_label)
-              VALUES (?, ?, ?, ?, ?, ?, ?, 'pending', ?, ?, ?, ?, ?, ?, ?)`,
+                payment_status, currency, subtotal_cents, savings_cents, shipping_cents, total_cents, shipping_option_id, gift_label, promo_code, promo_discount_cents)
+              VALUES (?, ?, ?, ?, ?, ?, ?, 'pending', ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         args: [
           id,
           orderNumber,
@@ -137,6 +142,8 @@ export async function createPendingOrder(input: NewOrderInput): Promise<OrderWit
           input.totalCents,
           input.shippingOptionId,
           input.giftLabel ?? null,
+          input.promoCode ?? null,
+          input.promoDiscountCents ?? 0,
         ],
       },
       ...input.items.map((it) => ({
@@ -398,4 +405,9 @@ export async function findOrderForTracking(orderNumber: string, email: string): 
     args: [orderNumber.trim().toUpperCase(), email.trim()],
   });
   return res.rows[0] ? mapOrder(res.rows[0]) : null;
+}
+
+export async function setOrderCoupon(orderId: string, couponId: string): Promise<void> {
+  const db = await getDb();
+  await db.execute({ sql: "UPDATE orders SET stripe_coupon_id = ?, updated_at = ? WHERE id = ?", args: [couponId, new Date().toISOString(), orderId] });
 }

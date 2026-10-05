@@ -22,6 +22,7 @@ export const INFO_PAGES = {
   privacy: { fr: "confidentialite", en: "privacy" },
   terms: { fr: "cgv", en: "terms" },
   tracking: { fr: "suivi-commande", en: "order-tracking" },
+  game: { fr: "reglement-jeu", en: "game-rules" },
 } as const satisfies Record<string, Record<Locale, string>>;
 export type InfoPageId = keyof typeof INFO_PAGES;
 

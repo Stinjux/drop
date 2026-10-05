@@ -138,6 +138,20 @@ export function CartDrawer() {
                       <dd className="tabular-nums">−{formatMoney(pricing.savingsCents, locale)}</dd>
                     </div>
                   )}
+                  {s.promo && s.promoResult && (
+                    <div data-testid="cart-promo">
+                      <div className="flex items-start justify-between gap-2">
+                        <dt>
+                          {t.scratch.promoLine} <span className="font-bold">({s.promo.code})</span>
+                        </dt>
+                        <dd className="tabular-nums">{s.promoResult.discountCents > 0 ? `−${formatMoney(s.promoResult.discountCents, locale)}` : "—"}</dd>
+                      </div>
+                      {s.promoResult.status === "needs_second_item" && <p className="mt-1 text-xs font-bold text-accent-ink">{t.scratch.needsSecond}</p>}
+                      <button type="button" onClick={() => s.setPromo(null)} className="mt-1 text-xs font-bold underline decoration-2 underline-offset-4">
+                        {t.scratch.remove}
+                      </button>
+                    </div>
+                  )}
                   <div className="flex justify-between">
                     <dt>{t.cart.shipping}</dt>
                     <dd className="tabular-nums">{pricing.shippingCents === 0 ? t.cart.free : formatMoney(pricing.shippingCents, locale)}</dd>
@@ -150,7 +164,7 @@ export function CartDrawer() {
                   )}
                   <div className="flex justify-between border-t-[3px] border-ink pt-2 text-lg font-bold">
                     <dt>{s.taxesAtCheckout ? t.cart.totalBeforeTax : t.cart.total}</dt>
-                    <dd className="tabular-nums">{formatMoney(pricing.totalBeforeTaxCents, locale)}</dd>
+                    <dd className="tabular-nums">{formatMoney(s.promoResult?.totalAfterPromoCents ?? pricing.totalBeforeTaxCents, locale)}</dd>
                   </div>
                 </dl>
                 <p className="mt-2 text-xs text-muted">{fmt(t.buy.delivery, est)}</p>

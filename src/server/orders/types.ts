@@ -78,6 +78,10 @@ export type Order = {
   shippingOptionId: string;
   /** Cadeau à inclure dans le colis (calculé par le serveur à la commande). */
   giftLabel: string | null;
+  /** Code « Gratte & gagne » utilisé et rabais correspondant (cents). */
+  promoCode: string | null;
+  promoDiscountCents: number;
+  stripeCouponId: string | null;
   customerEmail: string | null;
   customerName: string | null;
   customerPhone: string | null;

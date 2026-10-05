@@ -7,9 +7,12 @@ import { store } from "@/config/store";
 import type { Locale } from "@/config/types";
 import { catalog, defaultShipping, deliveryEstimate } from "@/lib/catalog";
 import { giftProgress } from "@/lib/gift";
+import { applyPrize } from "@/lib/promo";
+import { prizeLabel } from "@/config/promo";
+import { getUsableTicket } from "../promo/tickets";
 import { normalizeCartLines, priceCart, type CartError } from "@/lib/pricing";
 import { env } from "../env";
-import { attachCheckoutSession, createPendingOrder, getOrderByAttemptKey, addOrderEvent } from "../orders/repository";
+import { attachCheckoutSession, createPendingOrder, getOrderByAttemptKey, addOrderEvent, setOrderCoupon } from "../orders/repository";
 import type { OrderWithItems } from "../orders/types";
 import { getStripe } from "../stripe/client";
 
@@ -24,12 +27,14 @@ export const checkoutRequestSchema = z.strictObject({
     .max(20),
   locale: z.enum(["fr", "en"]),
   attemptKey: z.uuid(),
+  /** Code « Gratte & gagne » (facultatif) : validé et recalculé côté serveur. */
+  promoCode: z.string().max(20).optional(),
 });
 export type CheckoutRequest = z.infer<typeof checkoutRequestSchema>;
 
 export class CheckoutError extends Error {
   constructor(
-    public code: CartError["code"] | "attempt_mismatch" | "already_completed" | "stripe_error",
+    public code: CartError["code"] | "attempt_mismatch" | "already_completed" | "stripe_error" | "promo_invalid" | "promo_needs_second_item",
     public status: number,
     message?: string,
   ) {
@@ -38,13 +43,16 @@ export class CheckoutError extends Error {
   }
 }
 
-export function cartFingerprint(lines: Array<{ variantId: string; quantity: number }>, locale: Locale, totalCents: number): string {
+export function cartFingerprint(lines: Array<{ variantId: string; quantity: number }>, locale: Locale, totalCents: number, promoCode: string | null = null): string {
   const canonical = [...lines].sort((a, b) => a.variantId.localeCompare(b.variantId));
-  return createHash("sha256").update(JSON.stringify({ canonical, locale, totalCents })).digest("hex");
+  return createHash("sha256").update(JSON.stringify({ canonical, locale, totalCents, promoCode })).digest("hex");
 }
 
 /** Paramètres de la session Stripe — fonction pure, testée unitairement. */
-export function buildCheckoutSessionParams(order: OrderWithItems, opts: { siteUrl: string; taxEnabled: boolean }): Stripe.Checkout.SessionCreateParams {
+export function buildCheckoutSessionParams(
+  order: OrderWithItems,
+  opts: { siteUrl: string; taxEnabled: boolean; couponId?: string | null },
+): Stripe.Checkout.SessionCreateParams {
   const locale = order.locale;
   const estimate = deliveryEstimate(defaultShipping);
   const taxBehavior = opts.taxEnabled ? ("exclusive" as const) : undefined;
@@ -111,6 +119,8 @@ export function buildCheckoutSessionParams(order: OrderWithItems, opts: { siteUr
     },
   };
   if (opts.taxEnabled) params.automatic_tax = { enabled: true };
+  // Rabais « Gratte & gagne » : coupon Stripe à montant fixe, usage unique, calculé par le serveur.
+  if (opts.couponId) params.discounts = [{ coupon: opts.couponId }];
   return params;
 }
 
@@ -119,7 +129,18 @@ export async function createCheckout(req: CheckoutRequest): Promise<{ url: strin
   if (!normalized.ok) throw new CheckoutError(normalized.error.code, 400);
 
   const pricing = priceCart(normalized.lines, catalog);
-  const fingerprint = cartFingerprint(normalized.lines, req.locale, pricing.totalBeforeTaxCents);
+
+  // Code « Gratte & gagne » : jamais de montant reçu du navigateur, uniquement le code.
+  let promo: { code: string; discountCents: number; label: string } | null = null;
+  if (req.promoCode) {
+    const ticket = await getUsableTicket(req.promoCode);
+    if (!ticket) throw new CheckoutError("promo_invalid", 400);
+    const applied = applyPrize(pricing, ticket.prize);
+    if (applied.status === "needs_second_item") throw new CheckoutError("promo_needs_second_item", 400);
+    promo = { code: ticket.code, discountCents: applied.discountCents, label: prizeLabel(ticket.prize, req.locale) };
+  }
+  const totalCents = pricing.totalBeforeTaxCents - (promo?.discountCents ?? 0);
+  const fingerprint = cartFingerprint(normalized.lines, req.locale, totalCents, promo?.code ?? null);
 
   let order = await getOrderByAttemptKey(req.attemptKey);
   if (order) {
@@ -137,7 +158,9 @@ export async function createCheckout(req: CheckoutRequest): Promise<{ url: strin
         subtotalCents: pricing.subtotalCents,
         savingsCents: pricing.savingsCents,
         shippingCents: pricing.shippingCents,
-        totalCents: pricing.totalBeforeTaxCents,
+        totalCents,
+        promoCode: promo?.code ?? null,
+        promoDiscountCents: promo?.discountCents ?? 0,
         shippingOptionId: defaultShipping.id,
         giftLabel: giftProgress(pricing.subtotalCents)?.reached ? product.gift.label.fr : null,
         items: pricing.lines.map((l) => ({
@@ -162,9 +185,25 @@ export async function createCheckout(req: CheckoutRequest): Promise<{ url: strin
     }
   }
 
-  const params = buildCheckoutSessionParams(order, { siteUrl: env.siteUrl(), taxEnabled: env.stripeTaxEnabled() });
   let session: Stripe.Checkout.Session;
   try {
+    let couponId: string | null = null;
+    if (order.promoCode && order.promoDiscountCents > 0) {
+      const coupon = await getStripe().coupons.create(
+        {
+          amount_off: order.promoDiscountCents,
+          currency: order.currency.toLowerCase(),
+          duration: "once",
+          max_redemptions: 1,
+          name: `${req.locale === "fr" ? "Gratte & gagne" : "Scratch & win"} ${promo?.label ?? ""}`.trim().slice(0, 40),
+          metadata: { order_id: order.id, promo_code: order.promoCode },
+        },
+        { idempotencyKey: `coupon-${order.id}` },
+      );
+      couponId = coupon.id;
+      await setOrderCoupon(order.id, coupon.id);
+    }
+    const params = buildCheckoutSessionParams(order, { siteUrl: env.siteUrl(), taxEnabled: env.stripeTaxEnabled(), couponId });
     session = await getStripe().checkout.sessions.create(params, { idempotencyKey: `checkout-${order.id}` });
   } catch (err) {
     await addOrderEvent(order.id, "stripe_error", `Création de session refusée par Stripe : ${(err as Error).message}`).catch(() => {});

@@ -29,4 +29,21 @@ describe.skipIf(!available)("stripe-mock : paramètres acceptés par l'API Strip
     const session = await stripe.checkout.sessions.create(params, { idempotencyKey: randomUUID() });
     expect(session.object).toBe("checkout.session");
   });
+
+  it("coupon « Gratte & gagne » + session avec discounts", async () => {
+    const coupon = await stripe.coupons.create(
+      { amount_off: 935, currency: "cad", duration: "once", max_redemptions: 1, name: "Gratte & gagne -10 %", metadata: { order_id: "x", promo_code: "WOOF-ABCDEFGH" } },
+      { idempotencyKey: randomUUID() },
+    );
+    expect(coupon.object).toBe("coupon");
+    const order = await createPendingOrder({
+      locale: "fr", checkoutAttemptKey: randomUUID(), cartFingerprint: "fp", currency: "CAD",
+      subtotalCents: 9348, savingsCents: 1650, shippingCents: 0, totalCents: 8413, shippingOptionId: "standard", promoCode: "WOOF-ABCDEFGH", promoDiscountCents: 935,
+      items: [{ productId: "main", variantId: "vert-m", sku: "DJ-VE-M", productName: "Produit", variantLabel: "Vert / M", quantity: 2, unitPriceCents: 4674, lineTotalCents: 9348 }],
+    });
+    const params = buildCheckoutSessionParams(order, { siteUrl: "https://boutique.example", taxEnabled: true, couponId: coupon.id });
+    expect(params.discounts).toEqual([{ coupon: coupon.id }]);
+    const session = await stripe.checkout.sessions.create(params, { idempotencyKey: randomUUID() });
+    expect(session.object).toBe("checkout.session");
+  });
 });
