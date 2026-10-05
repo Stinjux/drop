@@ -1,4 +1,5 @@
 import "server-only";
+import { product } from "@/config/product";
 
 /**
  * INFORMATIONS FOURNISSEUR — INTERNES (jamais envoyées au navigateur des clients).
@@ -14,11 +15,20 @@ export const supplier = {
   costVerified: false,
   /** Méthode de livraison fournisseur à choisir vers le Canada (ex. « AliExpress Standard Shipping »). */
   shippingMethod: "À confirmer",
-  /** Correspondance variante boutique → option à sélectionner chez le fournisseur. */
-  variants: {
-    "option-1": { supplierOptionLabel: "À confirmer", unitCostCents: null as number | null, shippingCostCents: null as number | null },
-    "option-2": { supplierOptionLabel: "À confirmer", unitCostCents: null as number | null, shippingCostCents: null as number | null },
-  } as Record<string, { supplierOptionLabel: string; unitCostCents: number | null; shippingCostCents: number | null }>,
+  /**
+   * Correspondance variante boutique → options à sélectionner chez le fournisseur
+   * (générée pour les 5 coloris × 8 tailles). Renseigner les coûts réels par taille.
+   */
+  variants: Object.fromEntries(
+    product.variants.map((v) => [
+      v.id,
+      {
+        supplierOptionLabel: `${v.label.fr.replace(" · ", " / ")} (libellé exact à vérifier sur la fiche)`,
+        unitCostCents: null as number | null,
+        shippingCostCents: null as number | null,
+      },
+    ]),
+  ) as Record<string, { supplierOptionLabel: string; unitCostCents: number | null; shippingCostCents: number | null }>,
   notes:
     "Passer la commande avec l'adresse du client, sans facture ni prix dans le colis si l'option existe. Conserver la capture du récapitulatif fournisseur.",
 };

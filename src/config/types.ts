@@ -46,6 +46,9 @@ export type Variant = {
   available: boolean;
   /** Image affichée quand la variante est sélectionnée. */
   mediaId?: string;
+  /** Axes de variante (coloris × taille). */
+  colorId?: string;
+  size?: string;
 };
 
 export type ShippingOption = {

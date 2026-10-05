@@ -20,6 +20,8 @@
   --color-ink: #0e0e0e;
   --color-accent: #ff3b00;
   --color-accent-hover: #e63500;
+  /* Accent foncé pour petits textes sur fond clair (contraste 5,8:1) */
+  --color-accent-ink: #b02a00;
   --color-muted: #4a4a47;
 
   /* Alias conservés (admin et composants existants) */

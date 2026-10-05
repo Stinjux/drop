@@ -1,6 +1,6 @@
 "use client";
 
-import { getMedia, getVariant, product } from "@/config/product";
+import { getMedia, product } from "@/config/product";
 import { fmt } from "@/content";
 import { formatMoney } from "@/lib/money";
 import { ProductImage } from "../ui/primitives";
@@ -10,9 +10,9 @@ import { useStore } from "./store-provider";
 
 /** 11. CTA final plein écran sur fond accent, avec rappel du prix. */
 export function FinalCta() {
-  const { t, locale, variantId } = useStore();
+  const { t, locale, mediaId } = useStore();
   const { pricing, reference } = useReferencePrice();
-  const media = getMedia(getVariant(variantId)?.mediaId);
+  const media = getMedia(mediaId);
   return (
     <section id="final-cta" aria-labelledby="final-title" className="flex min-h-[85dvh] items-center border-b-[3px] border-ink bg-accent py-16 text-ink">
       <div className="mx-auto grid w-full max-w-7xl grid-cols-1 items-center gap-10 px-4 sm:px-6 lg:grid-cols-[1.3fr_1fr]">
@@ -28,8 +28,8 @@ export function FinalCta() {
           <div className="mt-8 max-w-md space-y-5">
             <VariantPicker idPrefix="final" />
             <div className="grid gap-4 pr-[6px]">
-              <AddToCartButton className="w-full !bg-white hover:!bg-paper" />
-              <BuyNowButton source="final" className="w-full" />
+              <AddToCartButton className="w-full !bg-white hover:!bg-paper" sizePicker="final-size" />
+              <BuyNowButton source="final" className="w-full" sizePicker="final-size" />
             </div>
             <CheckoutAlert source="final" />
           </div>

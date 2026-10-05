@@ -175,8 +175,11 @@ describe("paramètres Stripe", () => {
     const on = buildCheckoutSessionParams(order, { siteUrl: "https://shop.example", taxEnabled: true });
     expect(on.automatic_tax).toEqual({ enabled: true });
     expect(on.line_items?.[0].price_data?.tax_behavior).toBe("exclusive");
-    // Visuels provisoires jamais envoyés à Stripe.
-    expect(on.line_items?.[0].price_data?.product_data?.images).toBeUndefined();
+    // Photo du coloris envoyée à Stripe (URL absolue HTTPS), jamais un visuel provisoire.
+    expect(on.line_items?.[0].price_data?.product_data?.images).toEqual(["https://shop.example/product/vert.jpg"]);
+    expect(off.line_items?.[0].price_data?.product_data?.images).toEqual(["https://shop.example/product/vert.jpg"]);
+    const http = buildCheckoutSessionParams(order, { siteUrl: "http://localhost:3000", taxEnabled: false });
+    expect(http.line_items?.[0].price_data?.product_data?.images).toBeUndefined();
     expect(order.shippingCents).toBe(on.shipping_options?.[0].shipping_rate_data?.fixed_amount?.amount);
   });
 });

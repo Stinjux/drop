@@ -2,14 +2,14 @@
 
 import { AnimatePresence, m } from "framer-motion";
 import { useEffect, useRef, useState, type PointerEvent } from "react";
-import { getMedia, getVariant, product } from "@/config/product";
+import { getMedia, product } from "@/config/product";
 import { IconChevron, IconClose, IconZoom } from "../ui/icons";
 import { ProductImage } from "../ui/primitives";
 import { useStore } from "./store-provider";
 
 /** Galerie du hero : image principale, miniatures, visionneuse plein écran avec zoom. */
 export function Gallery() {
-  const { locale, t, variantId } = useStore();
+  const { locale, t, mediaId } = useStore();
   const items = product.gallery.map((id) => getMedia(id));
   const [index, setIndex] = useState(0);
   const [open, setOpen] = useState(false);
@@ -18,14 +18,13 @@ export function Gallery() {
   const dialog = useRef<HTMLDialogElement>(null);
   const current = items[index];
 
-  // La sélection d'une variante affiche sa photo.
+  // Le choix d'un coloris affiche sa photo.
   useEffect(() => {
-    const mediaId = getVariant(variantId)?.mediaId;
     const i = items.findIndex((it) => it.id === mediaId);
     // eslint-disable-next-line react-hooks/set-state-in-effect -- synchronisation avec la variante choisie
     if (i >= 0) setIndex(i);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [variantId]);
+  }, [mediaId]);
 
   useEffect(() => {
     const d = dialog.current;
@@ -51,7 +50,7 @@ export function Gallery() {
         type="button"
         onClick={() => setOpen(true)}
         className="relative block w-full overflow-hidden border-[3px] border-ink bg-white shadow-[var(--shadow-hard)]"
-        aria-label={`${t.a11y.zoom} — ${current.alt[locale]}`}
+        aria-label={`Zoom — ${current.alt[locale]}`}
       >
         <AnimatePresence initial={false} mode="popLayout">
           <m.div key={current.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }}>
@@ -63,7 +62,7 @@ export function Gallery() {
         </span>
       </button>
 
-      <ul className="mt-4 grid grid-cols-6 gap-2" aria-label={t.hero.gallery}>
+      <ul className="mt-4 grid gap-2" style={{ gridTemplateColumns: `repeat(${Math.min(items.length, 6)}, minmax(0, 1fr))` }} aria-label={t.hero.gallery}>
         {items.map((it, i) => (
           <li key={it.id}>
             <button

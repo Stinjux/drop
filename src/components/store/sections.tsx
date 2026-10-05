@@ -6,6 +6,7 @@ import { fmt, getDictionary } from "@/content";
 import { defaultShipping, deliveryEstimate } from "@/lib/catalog";
 import { FeatureIcons, IconChat, IconCheck, IconClose, IconLock, IconReturn, IconTruck } from "../ui/icons";
 import { Eyebrow, ProductImage, Reveal, SectionTitle } from "../ui/primitives";
+import { SizeChart } from "../SizeGuide";
 import { FaqAccordion } from "./faq-accordion";
 
 const wrap = "mx-auto max-w-7xl px-4 sm:px-6";
@@ -233,13 +234,13 @@ export function Faq({ locale, taxesAtCheckout }: { locale: Locale; taxesAtChecko
   const est = deliveryEstimate();
   const g = t.faqGeneral;
   const items = [
+    ...product.faq.map((f) => ({ q: f.q[locale], a: f.a[locale], extra: f.sizeChart ? <SizeChart headingLevel={3} /> : undefined })),
     {
       q: g.delayQ,
       a: fmt(g.delayA, { pmin: ship.processingDays.min, pmax: ship.processingDays.max, tmin: ship.transitDays.min, tmax: ship.transitDays.max, min: est.min, max: est.max }),
     },
     { q: g.shippingQ, a: fmt(g.shippingA, { shipping: t.buy.shippingFree }) },
     { q: g.returnsQ, a: fmt(g.returnsA, { days: store.returns.windowDays }) },
-    ...product.faq.map((f) => ({ q: f.q[locale], a: f.a[locale] })),
     { q: g.paymentQ, a: g.paymentA },
     { q: g.taxesQ, a: taxesAtCheckout ? g.taxesExtra : g.taxesNone },
     { q: g.accountQ, a: g.accountA },

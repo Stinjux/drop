@@ -2,7 +2,7 @@
 
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
-import { defaultVariant, product } from "@/config/product";
+import { defaultColor, getVariant, product, variantIdFor } from "@/config/product";
 import { store } from "@/config/store";
 import { catalog } from "@/lib/catalog";
 import { normalizeCartLines, type CartLineInput } from "@/lib/pricing";
@@ -29,12 +29,19 @@ export function sanitizeCart(lines: unknown): CartLineInput[] {
 const totalOf = (lines: CartLineInput[]) => lines.reduce((s, l) => s + l.quantity, 0);
 
 type CartState = {
-  /** Sélection courante (hero, barre fixe, CTA final). */
-  variantId: string;
+  /** Sélection courante (hero, guide des tailles, barre fixe, CTA final). */
+  colorId: string;
+  /** `null` tant que le client n'a pas choisi de taille (choix obligatoire). */
+  size: string | null;
+  /** Vrai quand le client a tenté d'acheter sans taille (affiche l'erreur). */
+  sizeMissing: boolean;
   quantity: number;
   cart: CartLineInput[];
   drawerOpen: boolean;
+  setColorId: (id: string) => void;
+  setSize: (size: string) => void;
   setVariantId: (id: string) => void;
+  flagSizeMissing: () => void;
   setQuantity: (q: number) => void;
   addToCart: (line: CartLineInput) => void;
   setLineQuantity: (variantId: string, quantity: number) => void;
@@ -52,13 +59,23 @@ type CartState = {
 export const useCartStore = create<CartState>()(
   persist(
     (set) => ({
-      variantId: defaultVariant.id,
+      colorId: defaultColor.id,
+      size: null,
+      sizeMissing: false,
       quantity: 1,
       cart: [],
       drawerOpen: false,
-      setVariantId: (id) => {
-        if (product.variants.some((v) => v.id === id && v.available)) set({ variantId: id });
+      setColorId: (id) => {
+        if (product.colors.some((c) => c.id === id)) set({ colorId: id });
       },
+      setSize: (size) => {
+        if ((product.sizes as readonly string[]).includes(size)) set({ size, sizeMissing: false });
+      },
+      setVariantId: (id) => {
+        const v = getVariant(id);
+        if (v?.available && v.colorId && v.size) set({ colorId: v.colorId, size: v.size, sizeMissing: false });
+      },
+      flagSizeMissing: () => set({ sizeMissing: true }),
       setQuantity: (q) => set({ quantity: Math.min(Math.max(Math.round(q) || 1, 1), store.maxQuantityPerOrder) }),
       addToCart: (line) =>
         set((s) => {
@@ -95,3 +112,10 @@ export const useCartStore = create<CartState>()(
     },
   ),
 );
+
+/** Variante choisie (coloris + taille), ou `null` si la taille n'est pas encore choisie. */
+export function selectedVariantId(s: Pick<CartState, "colorId" | "size">): string | null {
+  if (!s.size) return null;
+  const id = variantIdFor(s.colorId, s.size);
+  return getVariant(id)?.available ? id : null;
+}

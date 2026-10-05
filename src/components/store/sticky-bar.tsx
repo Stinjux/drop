@@ -2,7 +2,7 @@
 
 import { AnimatePresence, m } from "framer-motion";
 import { useEffect, useState } from "react";
-import { product } from "@/config/product";
+import { getColor } from "@/config/product";
 import { formatMoney } from "@/lib/money";
 import { AddToCartButton, useSelectionPricing } from "./buy-controls";
 import { useStore } from "./store-provider";
@@ -13,7 +13,7 @@ import { useStore } from "./store-provider";
  * pour ne jamais masquer de contrôle ; un espace équivalent est réservé en bas de page.
  */
 export function StickyBuyBar() {
-  const { t, locale, variantId, quantity, drawerOpen } = useStore();
+  const { t, locale, colorId, size, quantity, drawerOpen } = useStore();
   const pricing = useSelectionPricing();
   const [visible, setVisible] = useState(false);
 
@@ -42,7 +42,7 @@ export function StickyBuyBar() {
     };
   }, []);
 
-  const variant = product.variants.find((v) => v.id === variantId);
+  const color = getColor(colorId);
 
   return (
     <>
@@ -62,7 +62,7 @@ export function StickyBuyBar() {
             <div className="mx-auto flex max-w-xl items-center gap-3 pr-[6px]">
               <div className="min-w-0 shrink-0">
                 <p className="truncate font-mono text-[11px] font-bold uppercase">
-                  {variant?.label[locale]} ×{quantity}
+                  {color?.label[locale]} · {size ?? t.sizeGuide.pickSize + " ?"} ×{quantity}
                 </p>
                 <p className="font-mono text-xl font-bold tabular-nums">{formatMoney(pricing.subtotalCents, locale)}</p>
               </div>

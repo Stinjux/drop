@@ -24,6 +24,13 @@ export function launchChecklist(): ChecklistItem[] {
 
   return [
     { label: "Fiche produit vérifiée (nom, caractéristiques, variantes, FAQ)", ok: product.confirmed, blocking: true, detail: "data/product.ts → confirmed" },
+    {
+      label: "Propriété intellectuelle vérifiée (logo « THE DOG FANS » imitant The North Face)",
+      ok: false,
+      blocking: true,
+      detail:
+        "Risque de contrefaçon / atteinte à une marque : Stripe interdit la vente de produits portant atteinte à une marque. Obtenir un avis juridique ou choisir un modèle sans ce logo, puis retirer ce point.",
+    },
     { label: "Visuels réels et droits d'utilisation", ok: provisionalMedia.length === 0, blocking: true, detail: provisionalMedia.length ? `${provisionalMedia.length} visuel(s) provisoire(s)` : undefined },
     {
       label: "Cadeau du panier défini et disponible",

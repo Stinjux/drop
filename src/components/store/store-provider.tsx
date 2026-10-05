@@ -5,7 +5,8 @@ import { store } from "@/config/store";
 import type { Locale } from "@/config/types";
 import { dictionaries, fmt, type Dictionary } from "@/content";
 import { catalog } from "@/lib/catalog";
-import { useCartStore } from "./cart-store";
+import { selectedVariantId, useCartStore } from "./cart-store";
+import { getColor } from "@/config/product";
 import { normalizeCartLines, priceCart, type CartLineInput, type CartPricing } from "@/lib/pricing";
 
 /** `source` identifie le bouton à l'origine de la demande (spinner et message affichés au bon endroit). */
@@ -15,7 +16,16 @@ type StoreContextValue = {
   locale: Locale;
   t: Dictionary;
   taxesAtCheckout: boolean;
-  variantId: string;
+  /** Variante choisie, ou `null` tant qu'aucune taille n'est choisie. */
+  variantId: string | null;
+  colorId: string;
+  size: string | null;
+  sizeMissing: boolean;
+  /** Photo du coloris sélectionné. */
+  mediaId: string;
+  setColorId: (id: string) => void;
+  setSize: (size: string) => void;
+  flagSizeMissing: () => void;
   quantity: number;
   setVariantId: (id: string) => void;
   setQuantity: (q: number) => void;
@@ -125,7 +135,14 @@ export function StoreProvider({ locale, taxesAtCheckout, children }: { locale: L
     locale,
     t,
     taxesAtCheckout,
-    variantId: cartState.variantId,
+    variantId: selectedVariantId(cartState),
+    colorId: cartState.colorId,
+    size: cartState.size,
+    sizeMissing: cartState.sizeMissing,
+    mediaId: getColor(cartState.colorId)?.mediaId ?? "vert",
+    setColorId: cartState.setColorId,
+    setSize: cartState.setSize,
+    flagSizeMissing: cartState.flagSizeMissing,
     quantity: cartState.quantity,
     setVariantId: cartState.setVariantId,
     setQuantity: cartState.setQuantity,

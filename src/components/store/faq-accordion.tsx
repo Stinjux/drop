@@ -1,10 +1,10 @@
 "use client";
 
 import { AnimatePresence, m } from "framer-motion";
-import { useId, useState } from "react";
+import { useId, useState, type ReactNode } from "react";
 
 /** Accordéon accessible (bouton + région), animé avec Framer Motion. */
-export function FaqAccordion({ items }: { items: Array<{ q: string; a: string }> }) {
+export function FaqAccordion({ items }: { items: Array<{ q: string; a: string; extra?: ReactNode }> }) {
   const [open, setOpen] = useState<number | null>(0);
   const base = useId();
   return (
@@ -43,6 +43,7 @@ export function FaqAccordion({ items }: { items: Array<{ q: string; a: string }>
                   className="overflow-hidden"
                 >
                   <p className="px-5 py-4 leading-relaxed sm:px-6">{it.a}</p>
+                  {it.extra && <div className="px-5 pb-6 sm:px-6">{it.extra}</div>}
                 </m.div>
               )}
             </AnimatePresence>

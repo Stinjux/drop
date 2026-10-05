@@ -5,10 +5,20 @@ Framer Motion et Zustand**, dans une direction artistique **néo-moderne / néo-
 Elle inclut une base **libSQL/SQLite**, un paiement **Stripe Checkout** avec webhooks idempotents, un espace
 d'administration protégé et un traitement fournisseur manuel. Le français est la langue par défaut, l'anglais est disponible, et la devise est le CAD.
 
-> ⚠️ **Contenu produit provisoire.** La fiche AliExpress `1005005777504095` n'a pas pu être consultée
-> automatiquement (protection anti-robot / captcha). Aucun nom, caractéristique, variante, dimension,
-> coût ni délai n'a été inventé : tout est marqué « à confirmer » et les visuels sont des gabarits marqués
-> « VISUEL PROVISOIRE ». Un bandeau « Aperçu » s'affiche et l'indexation est bloquée tant que
+> **Produit : doudoune pour chien**, 5 coloris (vert, violet, rose, jaune, rouge) × 8 tailles (S à 5XL),
+> soit 40 variantes générées dans `data/product.ts`. Le **guide des tailles** (`src/components/SizeGuide.tsx`,
+> données `sizeChart`) s'ouvre sous le sélecteur de taille et figure aussi dans la FAQ. La taille est obligatoire avant
+> l'ajout au panier.
+>
+> ⚠️ **Propriété intellectuelle.** Le logo « THE DOG FANS » visible sur les photos imite celui de **The North Face**.
+> Vendre un article qui reprend l'identité visuelle d'une marque déposée expose à des réclamations pour contrefaçon,
+> et Stripe interdit les produits qui portent atteinte à une marque. Obtenez un avis juridique ou choisissez un modèle
+> sans ce logo avant de vendre. Ce point est bloquant dans la liste de lancement de `/admin`.
+>
+> ⚠️ **Contenu encore à confirmer.** La fiche AliExpress `1005005777504095` n'a pas pu être consultée
+> automatiquement (protection anti-robot / captcha). Les coloris, les tailles, le tableau des mesures et les
+> photos ont été fournis par le propriétaire. Les matériaux, l'entretien, le prix et les délais réels restent
+> « à confirmer ». Les visuels avant/après sont encore des gabarits « VISUEL PROVISOIRE ». Un bandeau « Aperçu » s'affiche et l'indexation est bloquée tant que
 > `product.confirmed` vaut `false`.
 
 Aperçus (générés par les tests e2e) : [`docs/preview/`](docs/preview/).
@@ -211,18 +221,18 @@ Chaque page, action serveur et export revérifie la session, et `/admin` n'est p
 
 ## 8. Tests réalisés
 
-- `npm test` (63 tests) : prix, lots et paliers ; validation du panier ; **montants manipulés** (prix ou
+- `npm test` (65 tests) : prix, lots et paliers ; validation du panier ; **montants manipulés** (prix ou
   montant injecté, quantités 0, négatives, décimales, en texte, excessives, variante inconnue) ; CSRF ;
   limitation de débit ; double clic ; garde-fou des clés live ; paramètres Stripe ; validation des paramètres
   par **stripe-mock** (test ignoré si stripe-mock n'est pas lancé) ; webhooks : signature absente ou invalide,
   corps modifié, paiement confirmé, **événements répétés et simultanés**, paiements différés réussis ou échoués,
   désordre, expiration, anomalie de montant, courriel envoyé une seule fois ; jeton admin, proxy, CSV.
-- `npm run test:e2e` (26 tests, Pixel 7 et Chrome desktop) : rendu, ordre des sections, absence de débordement horizontal,
-  absence de note, de prix barré ou de « stock limité » non justifiés, variantes, quantités, panier latéral et barre cadeau, suivi de commande, achat immédiat (un seul appel malgré le double clic),
+- `npm run test:e2e` (28 tests, Pixel 7 et Chrome desktop) : rendu, ordre des sections, absence de débordement horizontal,
+  absence de note, de prix barré ou de « stock limité » non justifiés, coloris et taille obligatoire, guide des tailles (tiroir, sélection partagée avec le hero, cm/pouces mémorisés, clavier ↑/↓, Échap, FAQ), quantités, panier latéral et barre cadeau, suivi de commande, achat immédiat (un seul appel malgré le double clic),
   redirection Stripe (page Stripe simulée), succès confirmé par webhook signé, faux `session_id`, paiement
   différé puis échec, annulation, langue anglaise, pages légales, animations réduites, barre d'achat mobile
   (masquée sur les blocs d'achat et le pied de page), protection de l'admin, traitement d'une commande et export CSV.
-- **Lighthouse** (build de production, page `/fr`) : mobile **Performance 95**, Accessibilité 100, Bonnes pratiques 100 ;
+- **Lighthouse** (build de production, page `/fr`) : mobile **Performance 90 à 93** avec les vraies photos, Accessibilité 100, Bonnes pratiques 100 ;
   desktop 100 / 100 / 100. Le SEO affiche 69 pour une **seule** raison : l'indexation est volontairement bloquée tant que
   `product.confirmed` vaut `false`. Tous les autres contrôles SEO passent.
 - **Non réalisé ici** : un paiement réel sur la page Stripe hébergée, faute de clés de test dans l'environnement.

@@ -23,10 +23,16 @@ async function sendWebhook(page: Page, type: string, session: Record<string, unk
   return res.json();
 }
 
+/** Choisit une taille dans le sélecteur du hero (obligatoire avant l'achat). */
+async function pickSize(page: Page, size = "M") {
+  await page.locator("#hero-size").getByText(size, { exact: true }).click();
+}
+
 /** Lance un achat immédiat et renvoie l'identifiant de session Stripe obtenu. */
 async function checkoutAndGetSession(page: Page): Promise<string> {
   const hits = await interceptStripe(page);
   await page.goto("/fr");
+  await pickSize(page);
   await page.locator("#buy-box").getByRole("button", { name: /Acheter maintenant/ }).click();
   await page.waitForURL(/checkout\.stripe\.com/);
   return hits[0].split("/").pop() as string;
@@ -85,9 +91,13 @@ test.describe("boutique", () => {
     await page.screenshot({ path: `${SHOTS}/${info.project.name}-compare.png` });
     await page.locator("#final-cta").scrollIntoViewIfNeeded();
     await page.screenshot({ path: `${SHOTS}/${info.project.name}-final-cta.png` });
-    await page.getByRole("button", { name: /Agrandir l'image/ }).first().click();
+    await page.getByRole("button", { name: /^Zoom —/ }).first().click();
     await expect(page.getByRole("dialog")).toBeVisible();
     await page.screenshot({ path: `${SHOTS}/${info.project.name}-lightbox.png` });
+    await page.keyboard.press("Escape");
+    await page.getByRole("button", { name: "Guide des tailles →" }).first().click();
+    await page.getByRole("radio", { name: /^L / }).first().click();
+    await page.screenshot({ path: `${SHOTS}/${info.project.name}-size-guide.png` });
     await page.keyboard.press("Escape");
     await page.locator("#buy-box").getByRole("button", { name: "Ajouter au panier" }).click();
     await expect(page.getByRole("dialog", { name: /Votre panier/ })).toBeVisible();
@@ -97,12 +107,21 @@ test.describe("boutique", () => {
     await ctx.close();
   });
 
-  test("variantes, quantités et remise de quantité mettent à jour le prix", async ({ page }) => {
+  test("coloris, taille obligatoire, quantités et remise de quantité", async ({ page }) => {
     await page.goto("/fr");
     const box = page.locator("#buy-box");
     await expect(box.getByTestId("price")).toHaveText(/39,99/);
-    await box.getByText("Option 2 (à confirmer)").click();
-    await expect(page.getByRole("button", { name: /Agrandir l'image — .*deuxième variante/ })).toBeVisible();
+    // 5 coloris × 8 tailles.
+    await expect(box.locator("input[name='hero-color']")).toHaveCount(5);
+    await expect(box.locator("input[name='hero-size']")).toHaveCount(8);
+    await box.getByText("Violet", { exact: true }).click();
+    await expect(page.getByRole("button", { name: /^Zoom — .*violette/ })).toBeVisible();
+    // Sans taille : pas d'ajout, message d'erreur.
+    await box.getByRole("button", { name: "Ajouter au panier" }).click();
+    await expect(box.getByRole("alert")).toContainText("Choisis une taille");
+    await expect(page.getByRole("dialog", { name: /Votre panier/ })).toBeHidden();
+    await pickSize(page, "2XL");
+    await expect(box.getByRole("alert")).toHaveCount(0);
     await box.getByRole("button", { name: "Augmenter la quantité" }).click();
     await expect(box.getByTestId("price")).toHaveText(/71,98/); // 2 × 35,99
     await expect(box.locator("s")).toHaveText(/79,98/); // prix barré = 2 × prix unitaire réel
@@ -110,10 +129,59 @@ test.describe("boutique", () => {
     await box.getByRole("button", { name: "Augmenter la quantité" }).click();
     await expect(box.getByTestId("price")).toHaveText(/98,97/);
     await expect(box).toContainText("-17 %");
+    await box.getByRole("button", { name: "Ajouter au panier" }).click();
+    await expect(page.getByRole("dialog", { name: /Votre panier/ })).toContainText("Violet · 2XL");
+  });
+
+  test("guide des tailles : tiroir, sélection partagée, unités, clavier, FAQ", async ({ page }) => {
+    await page.goto("/fr");
+    await pickSize(page, "M");
+    await page.getByRole("button", { name: "Guide des tailles →" }).first().click();
+    const drawer = page.getByRole("dialog", { name: "Trouve la bonne taille" });
+    await expect(drawer).toBeVisible();
+    // La taille choisie dans le hero est surlignée à l'ouverture.
+    await expect(drawer.getByRole("radio", { name: /^M / })).toHaveAttribute("aria-checked", "true");
+    await expect(drawer.getByRole("radiogroup")).toBeVisible();
+    // Clic sur une ligne → met à jour le sélecteur du hero.
+    await drawer.getByRole("radio", { name: /^3XL / }).click();
+    await expect(page.locator("#hero-size-3XL")).toBeChecked();
+    // Clavier ↑/↓.
+    await page.keyboard.press("ArrowDown");
+    await expect(drawer.getByRole("radio", { name: /^4XL / })).toHaveAttribute("aria-checked", "true");
+    await expect(drawer.getByRole("radio", { name: /^4XL / })).toBeFocused();
+    await page.keyboard.press("ArrowUp");
+    await page.keyboard.press("ArrowUp");
+    await expect(page.locator("#hero-size-2XL")).toBeChecked();
+    // Unités : cm par défaut, pouces avec 2 décimales, mémorisé.
+    await expect(drawer.getByRole("button", { name: "CM" })).toHaveAttribute("aria-pressed", "true");
+    await expect(drawer.getByRole("radio", { name: /^S / })).toContainText("40");
+    await drawer.getByRole("button", { name: "POUCES" }).click();
+    await expect(drawer.getByRole("button", { name: "POUCES" })).toHaveAttribute("aria-pressed", "true");
+    await expect(drawer.getByRole("radio", { name: /^S / })).toContainText("15,75");
+    await expect(drawer.getByRole("radio", { name: /^L / })).toContainText("12,20");
+    // Fermeture : Échap.
+    await page.keyboard.press("Escape");
+    await expect(drawer).toBeHidden();
+    // Fermeture : bouton.
+    await page.getByRole("button", { name: "Guide des tailles →" }).first().click();
+    await drawer.getByRole("button", { name: "Fermer ✕" }).click();
+    await expect(drawer).toBeHidden();
+    // Choix d'unité mémorisé après rechargement.
+    await page.reload();
+    await page.getByRole("button", { name: "Guide des tailles →" }).first().click();
+    await expect(drawer.getByRole("button", { name: "POUCES" })).toHaveAttribute("aria-pressed", "true");
+    await page.keyboard.press("Escape");
+    // Tableau présent dans la FAQ sous « Quelle taille choisir ? ».
+    const faq = page.locator("#faq");
+    await expect(faq.getByRole("button", { name: "Quelle taille choisir ?" })).toHaveAttribute("aria-expanded", "true");
+    await expect(faq.getByRole("radiogroup")).toBeVisible();
+    await faq.getByRole("radio", { name: /^XL / }).click();
+    await expect(page.locator("#hero-size-XL")).toBeChecked();
   });
 
   test("panier latéral modifiable avec livraison et total avant paiement", async ({ page }) => {
     await page.goto("/fr");
+    await pickSize(page);
     await page.locator("#buy-box").getByRole("button", { name: "Ajouter au panier" }).click();
     const cart = page.getByRole("dialog", { name: /Votre panier/ });
     await expect(cart).toBeVisible();
@@ -139,6 +207,7 @@ test.describe("boutique", () => {
       if (r.url().endsWith("/api/checkout")) apiCalls++;
     });
     await page.goto("/fr");
+    await pickSize(page);
     const btn = page.locator("#buy-box").getByRole("button", { name: /Acheter maintenant/ });
     await btn.dblclick();
     await page.waitForURL(/checkout\.stripe\.com/);
@@ -191,12 +260,13 @@ test.describe("boutique", () => {
 
   test("annulation : panier conservé", async ({ page }) => {
     await page.goto("/fr");
+    await pickSize(page, "L");
     await page.locator("#buy-box").getByRole("button", { name: "Ajouter au panier" }).click();
     await page.keyboard.press("Escape");
     await page.goto("/fr/checkout/cancel");
     await expect(page.getByRole("heading", { name: "Paiement annulé" })).toBeVisible();
     await page.getByRole("button", { name: "Revenir au panier" }).click();
-    await expect(page.getByRole("dialog", { name: /Votre panier/ })).toContainText("Option 1");
+    await expect(page.getByRole("dialog", { name: /Votre panier/ })).toContainText("Vert · L");
   });
 
   test("anglais disponible et pages légales", async ({ page }) => {
@@ -232,8 +302,13 @@ test.describe("barre d'achat mobile", () => {
     await expect(bar).toBeVisible();
     await expect(bar).toContainText("39,99");
     await page.screenshot({ path: `${SHOTS}/mobile-sticky.png` });
+    // Sans taille : renvoie au sélecteur du hero avec un message.
     await bar.getByRole("button", { name: "Ajouter au panier" }).click();
-    await expect(page.getByRole("dialog", { name: /Votre panier/ })).toBeVisible();
+    await expect(page.locator("#buy-box").getByRole("alert")).toContainText("Choisis une taille");
+    await pickSize(page, "S");
+    await page.locator("#features").scrollIntoViewIfNeeded();
+    await bar.getByRole("button", { name: "Ajouter au panier" }).click();
+    await expect(page.getByRole("dialog", { name: /Votre panier/ })).toContainText("Vert · S");
     await page.keyboard.press("Escape");
     await page.locator("#final-cta").scrollIntoViewIfNeeded();
     await expect(bar).toHaveCount(0);

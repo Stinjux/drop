@@ -111,3 +111,20 @@ describe("cadeau du panier", async () => {
     expect(giftProgress(threshold)).toMatchObject({ reached: true, remainingCents: 0, percent: 100 });
   });
 });
+
+describe("coloris, tailles et guide des tailles", () => {
+  it("5 coloris × 8 tailles = 40 variantes uniques", () => {
+    expect(product.colors).toHaveLength(5);
+    expect(product.sizes).toEqual(["S", "M", "L", "XL", "2XL", "3XL", "4XL", "5XL"]);
+    expect(product.variants).toHaveLength(40);
+    expect(new Set(product.variants.map((v) => v.id)).size).toBe(40);
+    expect(new Set(product.variants.map((v) => v.sku)).size).toBe(40);
+  });
+  it("le tableau couvre chaque taille, dans l'ordre, et les pouces correspondent aux cm", () => {
+    expect(product.sizeChart.map((r) => r.size)).toEqual([...product.sizes]);
+    for (const r of product.sizeChart) {
+      expect(Math.abs(r.chestCm / 2.54 - r.chestIn)).toBeLessThan(0.01);
+      expect(Math.abs(r.backCm / 2.54 - r.backIn)).toBeLessThan(0.01);
+    }
+  });
+});
