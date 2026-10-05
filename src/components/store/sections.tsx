@@ -1,7 +1,7 @@
 import Image from "next/image";
 import { getMedia, product, reviewSummary } from "@/config/product";
 import { store } from "@/config/store";
-import type { Locale, Localized } from "@/config/types";
+import type { Locale } from "@/config/types";
 import { fmt, getDictionary } from "@/content";
 import { defaultShipping, deliveryEstimate } from "@/lib/catalog";
 import { FeatureIcons, IconChat, IconCheck, IconClose, IconLock, IconReturn, IconTruck } from "../ui/icons";
@@ -47,7 +47,7 @@ export function ProblemSolution({ locale }: { locale: Locale }) {
   const col = (side: typeof ps.before, kind: "before" | "after") => (
     <div className={`flex flex-col border-[3px] border-ink ${kind === "after" ? "bg-white shadow-[var(--shadow-hard)]" : "bg-sand"}`}>
       <div className="relative border-b-[3px] border-ink">
-        <ProductImage media={getMedia(side.mediaId)} locale={locale} sizes="(min-width: 768px) 45vw, 100vw" className="aspect-[4/3] w-full object-cover" />
+        <ProductImage media={getMedia(side.mediaId)} locale={locale} sizes="(min-width: 768px) 45vw, 100vw" className="aspect-[4/3] w-full object-cover object-[62%_50%]" />
         <span className={`absolute left-0 top-0 border-b-[3px] border-r-[3px] border-ink px-3 py-1 font-display text-sm font-bold uppercase ${kind === "after" ? "bg-accent" : "bg-white"}`}>
           {side.title[locale]}
         </span>
@@ -74,6 +74,7 @@ export function ProblemSolution({ locale }: { locale: Locale }) {
         <Reveal>{col(ps.before, "before")}</Reveal>
         <Reveal delay={100}>{col(ps.after, "after")}</Reveal>
       </div>
+      <p className="mt-4 font-mono text-xs text-muted">{t.illustration}</p>
     </div>
   );
 }
@@ -174,56 +175,6 @@ export function Reviews({ locale }: { locale: Locale }) {
         </ul>
       </div>
     </section>
-  );
-}
-
-/** 9. Comparatif « Nous vs les autres » */
-export function Comparison({ locale }: { locale: Locale }) {
-  const t = getDictionary(locale).blocks;
-  const cell = (v: boolean | Localized, us: boolean) =>
-    typeof v === "boolean" ? (
-      <span className={`inline-flex size-8 items-center justify-center border-[3px] border-ink ${v ? (us ? "bg-accent" : "bg-white") : "bg-white"}`}>
-        {v ? <IconCheck width={18} height={18} /> : <IconClose width={16} height={16} />}
-        <span className="sr-only">{v ? t.yes : t.no}</span>
-      </span>
-    ) : (
-      <span className="font-mono text-xs font-bold sm:text-sm">{v[locale]}</span>
-    );
-  return (
-    <div className={wrap}>
-      <Reveal>
-        <Eyebrow>{t.compareEyebrow}</Eyebrow>
-        <SectionTitle id="compare-title">{t.compareTitle}</SectionTitle>
-      </Reveal>
-      <div className="mt-10 overflow-x-auto pb-[6px] pr-[6px]">
-        <table className="w-full border-collapse border-[3px] border-ink bg-white text-left shadow-[var(--shadow-hard)]">
-          <thead>
-            <tr>
-              <th scope="col" className="border-[3px] border-ink p-2 font-mono text-[11px] font-bold uppercase tracking-wider sm:p-4 sm:text-xs">
-                {t.compareFeature}
-              </th>
-              <th scope="col" className="w-[24%] border-[3px] border-ink bg-accent p-2 text-center font-display text-[11px] font-bold uppercase sm:p-4 sm:text-sm">
-                {store.brand.name}
-              </th>
-              <th scope="col" className="w-[28%] border-[3px] border-ink p-2 text-center font-display text-[11px] font-bold uppercase sm:p-4 sm:text-sm">
-                {product.comparison.othersLabel[locale]}
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            {product.comparison.rows.map((r, i) => (
-              <tr key={i}>
-                <th scope="row" className="border-[3px] border-ink p-2 text-sm font-semibold sm:p-4 sm:text-base">
-                  {r.label[locale]}
-                </th>
-                <td className="border-[3px] border-ink p-2 text-center sm:p-4">{cell(r.us, true)}</td>
-                <td className="border-[3px] border-ink p-2 text-center sm:p-4">{cell(r.others, false)}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    </div>
   );
 }
 

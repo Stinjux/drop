@@ -9,3 +9,8 @@ Puis, dans `data/product.ts`, passez `provisional: false` (et ajustez `width`/`h
 Évitez les liens directs vers les images du fournisseur.
 
 Photos d'avis (vrais avis uniquement) : `reviews/`.
+
+**Astuce cache.** L'optimiseur d'images de Next.js conserve les versions redimensionnées (jusqu'à
+4 h en Next 16). Si vous remplacez une photo **en gardant le même nom**, l'ancienne peut encore
+s'afficher : donnez un nouveau nom au fichier (et mettez à jour `data/product.ts`), ou supprimez
+`.next/cache/images` puis relancez le serveur.

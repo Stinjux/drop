@@ -185,6 +185,7 @@ export const en: Dictionary = {
   },
   blocks: {
     reassurance: { shipping: "Free shipping", shippingText: "{min}–{max} business days, tracked", payment: "Secure payment", paymentText: "Processed by Stripe", returns: "{days}-day returns", returnsText: "Money-back guarantee", support: "Support", supportText: "In French and English, by email" },
+    illustration: "Illustrative images.",
     problemEyebrow: "The problem",
     featuresEyebrow: "Features",
     featuresTitle: "What it actually does",
@@ -193,10 +194,6 @@ export const en: Dictionary = {
     reviewsEyebrow: "Reviews",
     reviewsTitle: "What customers say",
     verified: "Verified purchase",
-    compareEyebrow: "Comparison",
-    compareTitle: "Us vs the others",
-    compareUs: "Us",
-    compareFeature: "Criteria",
     yes: "Yes",
     no: "No",
     faqTitle: "FAQ",

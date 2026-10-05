@@ -72,7 +72,8 @@ test.describe("boutique", () => {
     await expect(page.locator("#buy-box s")).toHaveCount(0);
     // Ordre des sections demandé.
     const ids = await page.locator("main > section[id]").evaluateAll((els) => els.map((e) => e.id));
-    expect(ids).toEqual(["problem", "features", "how", "compare", "faq", "final-cta"]);
+    expect(ids).toEqual(["problem", "features", "how", "faq", "final-cta"]);
+    await expect(page.locator("#compare")).toHaveCount(0);
     // Aucun débordement horizontal.
     // Aucun élément plus large que l'écran (sinon le navigateur mobile élargit la fenêtre de mise en page).
     const widths = await page.evaluate(() => ({ scroll: document.documentElement.scrollWidth, layout: window.innerWidth, client: document.documentElement.clientWidth }));
@@ -87,8 +88,8 @@ test.describe("boutique", () => {
     const page = await ctx.newPage();
     await page.goto(`${E2E_ENV.NEXT_PUBLIC_SITE_URL}/fr`);
     await page.screenshot({ path: `${SHOTS}/${info.project.name}-full.png`, fullPage: true });
-    await page.locator("#compare").scrollIntoViewIfNeeded();
-    await page.screenshot({ path: `${SHOTS}/${info.project.name}-compare.png` });
+    await page.locator("#problem").scrollIntoViewIfNeeded();
+    await page.screenshot({ path: `${SHOTS}/${info.project.name}-before-after.png` });
     await page.locator("#final-cta").scrollIntoViewIfNeeded();
     await page.screenshot({ path: `${SHOTS}/${info.project.name}-final-cta.png` });
     await page.getByRole("button", { name: /^Zoom —/ }).first().click();

@@ -28,7 +28,6 @@ export function Header() {
   const links = [
     { href: `${home}#features`, label: t.blocks.featuresEyebrow },
     { href: `${home}#how`, label: t.blocks.howTitle },
-    { href: `${home}#compare`, label: t.blocks.compareEyebrow },
     { href: `${home}#faq`, label: t.nav.faq },
   ];
 

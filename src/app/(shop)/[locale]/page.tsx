@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { FinalCta } from "@/components/store/final-cta";
 import { Hero } from "@/components/store/hero";
 import { SectionCta } from "@/components/store/section-cta";
-import { Comparison, Faq, Features, HowItWorks, ProblemSolution, ReassuranceBand, Reviews } from "@/components/store/sections";
+import { Faq, Features, HowItWorks, ProblemSolution, ReassuranceBand, Reviews } from "@/components/store/sections";
 import { StickyBuyBar } from "@/components/store/sticky-bar";
 import { getMedia, product, reviewSummary } from "@/config/product";
 import { store } from "@/config/store";
@@ -106,10 +106,6 @@ export default async function HomePage({ params }: PageProps<"/[locale]">) {
 
       <Reviews locale={locale} />
 
-      <section id="compare" aria-labelledby="compare-title" className={`${section} bg-grid`}>
-        <Comparison locale={locale} />
-        <SectionCta id="compare" />
-      </section>
 
       <section id="faq" aria-labelledby="faq-title" className={section}>
         <Faq locale={locale} taxesAtCheckout={taxesAtCheckout} />

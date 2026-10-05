@@ -48,8 +48,8 @@ const media = {
   rouge: photo("rouge", "rouge.jpg", "Shiba inu portant la doudoune rouge et noire", "Shiba inu wearing the red and black puffer jacket", 1376, 768),
   detail1: placeholder("detail1", "detail-1.jpg", "détail et contenu du colis", "detail and box contents"),
   lifestyle: placeholder("lifestyle", "lifestyle.jpg", "produit en situation", "product in use", 1600, 1000),
-  before: placeholder("before", "before.jpg", "avant : le problème", "before: the problem", 1200, 900),
-  after: placeholder("after", "after.jpg", "après : la solution", "after: the solution", 1200, 900),
+  before: photo("before", "avant-hiver.jpg", "Chien sans manteau, assis sous la neige dans une rue en hiver", "Dog without a coat sitting in the snow on a winter street", 1376, 768),
+  after: photo("after", "apres-hiver.jpg", "Le même chien portant la doudoune jaune et noire sous la neige", "The same dog wearing the yellow and black puffer jacket in the snow", 1376, 768),
 } satisfies Record<string, MediaItem>;
 
 /** Coloris (l'ordre est celui du sélecteur). */
@@ -193,21 +193,6 @@ export const product = {
     { label: { fr: "Entretien", en: "Care" }, value: { fr: "À confirmer", en: "To be confirmed" } },
   ] satisfies Array<{ label: Localized; value: Localized }>,
   packageContents: [{ fr: "1 × doudoune pour chien", en: "1 × dog puffer jacket" }] satisfies Localized[],
-
-  /**
-   * Comparatif « Nous vs les autres ». Ne comparez que ce que vous pouvez prouver.
-   * `us` / `others` : true (✓), false (✗) ou un texte court.
-   */
-  comparison: {
-    othersLabel: { fr: "Les autres", en: "Others" } satisfies Localized,
-    rows: [
-      { label: { fr: "8 tailles du S au 5XL", en: "8 sizes from S to 5XL" }, us: true, others: { fr: "Variable", en: "Varies" } },
-      { label: { fr: "Guide des tailles en cm et pouces", en: "Size guide in cm and inches" }, us: true, others: { fr: "Variable", en: "Varies" } },
-      { label: { fr: "Livraison gratuite au Canada", en: "Free shipping in Canada" }, us: true, others: { fr: "Variable", en: "Varies" } },
-      { label: { fr: "Retours sous 30 jours", en: "30-day returns" }, us: true, others: { fr: "Variable", en: "Varies" } },
-      { label: { fr: "Paiement sécurisé (Stripe)", en: "Secure payment (Stripe)" }, us: true, others: { fr: "Variable", en: "Varies" } },
-    ] as Array<{ label: Localized; us: boolean | Localized; others: boolean | Localized }>,
-  },
 
   /** FAQ propre au produit. La question « Quelle taille choisir ? » affiche le tableau des tailles. */
   faq: [

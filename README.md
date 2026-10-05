@@ -18,7 +18,7 @@ d'administration protégé et un traitement fournisseur manuel. Le français est
 > ⚠️ **Contenu encore à confirmer.** La fiche AliExpress `1005005777504095` n'a pas pu être consultée
 > automatiquement (protection anti-robot / captcha). Les coloris, les tailles, le tableau des mesures et les
 > photos ont été fournis par le propriétaire. Les matériaux, l'entretien, le prix et les délais réels restent
-> « à confirmer ». Les visuels avant/après sont encore des gabarits « VISUEL PROVISOIRE ». Un bandeau « Aperçu » s'affiche et l'indexation est bloquée tant que
+> « à confirmer ». La section avant/après utilise deux photos d'illustration fournies par le propriétaire. Le comparatif « Nous vs les autres » a été retiré. Un bandeau « Aperçu » s'affiche et l'indexation est bloquée tant que
 > `product.confirmed` vaut `false`.
 
 Aperçus (générés par les tests e2e) : [`docs/preview/`](docs/preview/).
@@ -110,8 +110,9 @@ Toute l'information modifiable est centralisée :
 barré et les économies affichées. Le calcul (`src/lib/pricing.ts`) est partagé par le navigateur et le
 serveur. Le pourcentage d'économie est arrondi à la baisse.
 
-**Médias.** Remplacez les JPG provisoires de `public/product/` par vos photos (dont vous détenez les droits)
-**en gardant les mêmes noms**, puis passez `provisional: false` dans `data/product.ts`. Les images de la
+**Médias.** Déposez vos photos (dont vous détenez les droits) dans `public/product/` et référencez-les
+dans `data/product.ts` (`provisional: false`). Donnez un **nouveau nom** à une photo remplacée : sinon le
+cache de l'optimiseur d'images peut afficher l'ancienne version pendant plusieurs heures. Les images de la
 galerie sont carrées : prévoyez un sujet centré. Les liens directs vers les images du fournisseur sont à éviter.
 
 **Avis.** La section reste masquée tant que `product.reviews` est vide. N'y mettez que de vrais avis,

@@ -183,6 +183,7 @@ export const fr = {
   },
   blocks: {
     reassurance: { shipping: "Livraison gratuite", shippingText: "{min}–{max} jours ouvrables, suivie", payment: "Paiement sécurisé", paymentText: "Traité par Stripe", returns: "Retours {days} jours", returnsText: "Satisfait ou remboursé", support: "Support", supportText: "En français, par courriel" },
+    illustration: "Images d'illustration.",
     problemEyebrow: "Le problème",
     featuresEyebrow: "Caractéristiques",
     featuresTitle: "Ce qu'il fait, concrètement",
@@ -191,10 +192,6 @@ export const fr = {
     reviewsEyebrow: "Avis clients",
     reviewsTitle: "Ce qu'en disent les clients",
     verified: "Achat vérifié",
-    compareEyebrow: "Comparatif",
-    compareTitle: "Nous vs les autres",
-    compareUs: "Nous",
-    compareFeature: "Critère",
     yes: "Oui",
     no: "Non",
     faqTitle: "Questions fréquentes",
